@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
+<link rel="manifest" href="./manifest.json">
 <title>ON Digital — Gestão de Eventos</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -1950,6 +1951,11 @@ try{
     else showToast('Dados sincronizados de outro dispositivo');
   },err=>console.warn('Firestore sync error',err));
 }catch(e){console.warn('Firebase init error',e);}
+
+// Service Worker
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js').catch(e=>console.warn('SW error',e));
+}
 </script>
 </body>
 </html>
