@@ -774,7 +774,10 @@ function pageClientes(){
   return`
     <div class="sec-hdr">
       <div><div class="sec-title">Clientes</div><div class="sec-sub">${allClients.length} cliente(s) · globais</div></div>
-      <button class="btn btn-primary btn-sm" data-action="open-modal" data-modal="nova-participacao">${IC.plus} Nova Participação</button>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-ghost btn-sm" data-action="open-modal" data-modal="novo-cliente">${IC.plus} Novo Cliente</button>
+        <button class="btn btn-primary btn-sm" data-action="open-modal" data-modal="nova-participacao">${IC.plus} Nova Participação</button>
+      </div>
     </div>
     <div class="search-wrap" style="margin-bottom:10px">
       <span class="search-icon">${IC.search}</span>
@@ -979,6 +982,7 @@ function renderModal(){
     case 'novo-equip':         return modalEquip();
     case 'ver-cliente':        return modalClient(S.editId);
     case 'add-horse':          return modalAddHorse(S._horseClient);
+    case 'novo-cliente':       return modalNovoCliente();
     default: return'';
   }
 }
@@ -1050,8 +1054,10 @@ function modalParticipacao(editId){
           </select>
         </div>
         <div id="new-horse-fields" style="display:none">
-          <div class="field"><label>Nome do Cavalo *</label><input name="newHorseName" placeholder="Nome do cavalo"></div>
+          <div class="field"><label>Nome do Cavalo *</label><input name="newHorseName" id="inp-new-horse" placeholder="Nome do cavalo"></div>
         </div>
+        ${!part?`<button type="button" id="btn-new-horse" class="btn btn-ghost btn-sm" style="margin-top:-4px;font-size:12px">${IC.plus} Cadastrar Novo Cavalo</button>`:''}
+
 
         <div class="form-section">Contrato</div>
         <div class="field"><label>Modelo de Cobrança</label>
@@ -1250,6 +1256,40 @@ function modalEquip(){
     <div class="modal-footer">
       <button class="btn btn-ghost" data-action="close-modal">Cancelar</button>
       <button class="btn btn-primary" onclick="document.getElementById('form-eq').requestSubmit()">${IC.check} Salvar</button>
+    </div>
+  </div>`;
+}
+
+function modalNovoCliente(){
+  return`<div class="modal" id="modal">
+    <div class="modal-hdr"><h3>Novo Cliente</h3><button class="hdr-btn" data-action="close-modal">${IC.x}</button></div>
+    <div class="modal-body">
+      <form class="form-grid" data-action="save-novo-cliente" id="form-novo-cliente">
+        <div class="form-section">Dados do Cliente</div>
+        <div class="field"><label>Nome *</label><input name="clientName" required placeholder="Nome completo" autofocus></div>
+        <div class="form-row">
+          <div class="field"><label>Telefone</label><input name="clientPhone" placeholder="(00) 00000-0000"></div>
+          <div class="field"><label>Instagram</label><input name="clientInstagram" placeholder="@usuario"></div>
+        </div>
+        <div class="field"><label>Observações</label><textarea name="clientNotes" style="min-height:50px"></textarea></div>
+        <div class="form-section" style="display:flex;align-items:center;justify-content:space-between">
+          <span>🐴 Cavalos</span>
+          <button type="button" id="btn-add-horse-row" class="btn btn-ghost btn-sm" style="font-size:12px">${IC.plus} Cavalo</button>
+        </div>
+        <div id="horses-list">
+          <div class="horse-row" style="background:var(--surf2);border-radius:var(--r-sm);padding:10px;margin-bottom:8px">
+            <div class="form-row" style="align-items:flex-end">
+              <div class="field"><label>Nome do Cavalo</label><input name="horseName" placeholder="Nome do cavalo"></div>
+              <div class="field"><label>Observações</label><input name="horseNotes" placeholder="Raça, cor..."></div>
+              <button type="button" class="btn btn-ghost btn-sm horse-row-del" style="margin-bottom:2px" title="Remover">✕</button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" data-action="close-modal">Cancelar</button>
+      <button class="btn btn-primary" onclick="document.getElementById('form-novo-cliente').requestSubmit()">${IC.check} Salvar</button>
     </div>
   </div>`;
 }
@@ -1569,6 +1609,16 @@ function handleForm(action,form){
       saveDB();showToast('Cavalo cadastrado');
       S._horseClient=null;S.modal='ver-cliente';S.editId=clientId;render();break;}
 
+    case 'save-novo-cliente':{
+      const clientName=v('clientName').trim();
+      if(!clientName){showToast('Nome obrigatório','error');return;}
+      const nc={id:uid(),name:clientName,phone:v('clientPhone'),instagram:v('clientInstagram'),notes:v('clientNotes')};
+      db.clients.push(nc);
+      const horseNames=fd.getAll('horseName');
+      const horseNotesArr=fd.getAll('horseNotes');
+      horseNames.forEach((hn,i)=>{if(hn.trim())db.horses.push({id:uid(),clientId:nc.id,name:hn.trim(),notes:horseNotesArr[i]||''});});
+      saveDB();showToast('Cliente cadastrado');closeModal();break;}
+
     case 'save-despesa':
       db.expenses.push({id:uid(),eventId:S.eventId,description:v('description'),
         category:v('category'),date:v('date'),value:parseFloat(v('value'))||0,
@@ -1655,6 +1705,45 @@ function bindAfter(){
   document.querySelectorAll('[data-change="search"]').forEach(el=>{
     el.addEventListener('input',e=>{S.search=e.target.value;render()});
   });
+
+  // "+ Cadastrar Novo Cavalo" button in participation form
+  const btnNewHorse=document.getElementById('btn-new-horse');
+  if(btnNewHorse){
+    btnNewHorse.addEventListener('click',()=>{
+      const clientVal=selClient?selClient.value:'';
+      if(!clientVal||clientVal==='__new__'){showToast('Selecione um cliente primeiro','error');return;}
+      if(!selHorse.querySelector('option[value="__new_horse__"]')){
+        const opt=document.createElement('option');opt.value='__new_horse__';opt.textContent='+ Novo cavalo...';
+        selHorse.appendChild(opt);
+      }
+      selHorse.value='__new_horse__';
+      if(newHorseFields)newHorseFields.style.display='block';
+      document.getElementById('inp-new-horse')?.focus();
+    });
+  }
+
+  // Horse rows in "Novo Cliente" modal
+  const btnAddHorseRow=document.getElementById('btn-add-horse-row');
+  const horsesList=document.getElementById('horses-list');
+  if(btnAddHorseRow&&horsesList){
+    btnAddHorseRow.addEventListener('click',()=>{
+      const row=document.createElement('div');
+      row.className='horse-row';
+      row.style.cssText='background:var(--surf2);border-radius:var(--r-sm);padding:10px;margin-bottom:8px';
+      row.innerHTML=`<div class="form-row" style="align-items:flex-end">
+        <div class="field"><label>Nome do Cavalo</label><input name="horseName" placeholder="Nome do cavalo"></div>
+        <div class="field"><label>Observações</label><input name="horseNotes" placeholder="Raça, cor..."></div>
+        <button type="button" class="btn btn-ghost btn-sm horse-row-del" style="margin-bottom:2px" title="Remover">✕</button>
+      </div>`;
+      horsesList.appendChild(row);
+    });
+    horsesList.addEventListener('click',e=>{
+      if(e.target.classList.contains('horse-row-del')){
+        const rows=horsesList.querySelectorAll('.horse-row');
+        if(rows.length>1)e.target.closest('.horse-row').remove();
+      }
+    });
+  }
 
   // Multi-day add button (create participation mode)
   const btnAddDay=document.getElementById('btn-add-day');
