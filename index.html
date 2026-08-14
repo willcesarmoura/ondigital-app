@@ -1176,6 +1176,7 @@ function renderModal(){
     case 'add-horse':          return modalAddHorse(S._horseClient);
     case 'novo-cliente':       return modalNovoCliente();
     case 'fph-import':         return modalFphImport();
+    case 'editar-cliente':     return modalEditCliente(S.editId);
     default: return'';
   }
 }
@@ -1532,6 +1533,30 @@ function modalFphImport(){
   </div>`;
 }
 
+function modalEditCliente(clientId){
+  const c=db.clients.find(x=>x.id===clientId);
+  if(!c)return'';
+  return`<div class="modal" id="modal" style="max-width:420px">
+    <div class="modal-hdr"><h3>Editar Cliente</h3><button class="hdr-btn" data-action="close-modal">${IC.x}</button></div>
+    <div class="modal-body">
+      <form class="form-grid" data-action="save-edit-cliente" id="form-edit-cliente">
+        <input type="hidden" name="id" value="${c.id}">
+        <div class="field"><label>Nome *</label><input name="clientName" required value="${esc(c.name)}" autofocus></div>
+        <div class="form-row">
+          <div class="field"><label>Telefone</label><input name="clientPhone" value="${esc(c.phone||'')}" placeholder="(00) 00000-0000"></div>
+          <div class="field"><label>Instagram</label><input name="clientInstagram" value="${esc(c.instagram||'')}" placeholder="@usuario"></div>
+        </div>
+        <div class="field"><label>E-mail</label><input type="email" name="clientEmail" value="${esc(c.email||'')}" placeholder="email@exemplo.com"></div>
+        <div class="field"><label>Observações</label><textarea name="clientNotes" style="min-height:60px">${esc(c.notes||'')}</textarea></div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" data-action="back-to-client" data-id="${c.id}">Cancelar</button>
+      <button class="btn btn-primary" onclick="document.getElementById('form-edit-cliente').requestSubmit()">${IC.check} Salvar</button>
+    </div>
+  </div>`;
+}
+
 function modalAddHorse(clientId){
   const client=db.clients.find(c=>c.id===clientId);
   if(!client)return'';
@@ -1625,7 +1650,7 @@ function modalClient(clientId){
     </div>
     <div class="modal-footer">
       <button class="btn btn-danger btn-sm" data-action="del-client" data-id="${clientId}">${IC.trash}</button>
-      <button class="btn btn-ghost" data-action="close-modal">Fechar</button>
+      <button class="btn btn-ghost" data-action="edit-client" data-id="${clientId}">${IC.edit} Editar</button>
       <button class="btn btn-primary" data-action="new-part-for-client" data-id="${clientId}">${IC.plus} Nova Participação</button>
     </div>
   </div>`;
@@ -1707,6 +1732,8 @@ function handleAction(action,el){
         reader.readAsText(file);
       });
       inp.click();break;}
+    case 'edit-client':
+      S.modal='editar-cliente';S.editId=id;render();break;
     case 'open-add-horse':
       S._horseClient=id;S.modal='add-horse';render();break;
     case 'back-to-client':
@@ -1880,6 +1907,15 @@ function handleForm(action,form){
       db.horses.push({id:uid(),clientId,name:horseName,notes:v('horseNotes')});
       saveDB();showToast('Cavalo cadastrado');
       S._horseClient=null;S.modal='ver-cliente';S.editId=clientId;render();break;}
+
+    case 'save-edit-cliente':{
+      const cid=v('id');
+      const ec=db.clients.find(c=>c.id===cid);
+      if(!ec){showToast('Cliente não encontrado','error');return;}
+      const nm=v('clientName').trim();
+      if(!nm){showToast('Nome obrigatório','error');return;}
+      Object.assign(ec,{name:nm,phone:v('clientPhone'),instagram:v('clientInstagram'),email:v('clientEmail'),notes:v('clientNotes')});
+      saveDB();showToast('Cliente atualizado');S.modal='ver-cliente';S.editId=cid;render();break;}
 
     case 'save-novo-cliente':{
       const clientName=v('clientName').trim();
