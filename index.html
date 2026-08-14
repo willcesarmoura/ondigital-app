@@ -196,6 +196,8 @@ tr:hover td{background:var(--surf2)}
 </head>
 <body>
 <div id="root"></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script>
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -349,7 +351,16 @@ function loadDB(){
   return defaultDB();
 }
 let db=loadDB();
-function saveDB(){localStorage.setItem(STORAGE_KEY,JSON.stringify(db))}
+let _lastSaved='';
+function saveDB(){
+  const str=JSON.stringify(db);
+  localStorage.setItem(STORAGE_KEY,str);
+  _lastSaved=str;
+  if(window._fsDb){
+    window._fsDb.collection('ondigital').doc('data').set(db)
+      .catch(e=>console.warn('Firestore save error',e));
+  }
+}
 
 // Helpers de acesso
 function getEvent(id){return db.events.find(e=>e.id===id)}
@@ -1899,7 +1910,7 @@ function importJSON(){
   inp.onchange=e=>{
     const f=e.target.files[0];if(!f)return;
     const r=new FileReader();r.onload=ev=>{
-      try{db=JSON.parse(ev.target.result);saveDB();S.eventId=db.events[0]?.id||null;render();showToast('Dados importados!');}
+      try{db=JSON.parse(ev.target.result);saveDB();S.eventId=db.events[0]?.id||null;render();showToast('Dados importados e sincronizados!');}
       catch(err){showToast('Erro ao importar','error');}
     };r.readAsText(f);
   };inp.click();
@@ -1909,6 +1920,36 @@ function importJSON(){
 // INIT
 // ═══════════════════════════════════════════════════════════════
 render();
+
+// Firebase sync
+try{
+  const firebaseConfig={
+    apiKey:"AIzaSyBp37WxVemLqF828aNX2joTijERbzCq9jg",
+    authDomain:"on-digital-322f4.firebaseapp.com",
+    projectId:"on-digital-322f4",
+    storageBucket:"on-digital-322f4.firebasestorage.app",
+    messagingSenderId:"818185059335",
+    appId:"1:818185059335:web:16e1b34f3f39ad83d13ea2"
+  };
+  if(!firebase.apps.length)firebase.initializeApp(firebaseConfig);
+  window._fsDb=firebase.firestore();
+  // Empurra dados locais se Firestore estiver vazio; senão, ouve atualizações em tempo real
+  window._fsDb.collection('ondigital').doc('data').onSnapshot(snap=>{
+    if(!snap.exists){
+      // Primeiro acesso: sobe os dados locais
+      window._fsDb.collection('ondigital').doc('data').set(db);
+      return;
+    }
+    const dataStr=JSON.stringify(snap.data());
+    if(dataStr===_lastSaved)return; // nossa própria gravação, ignora
+    // Atualização vinda de outro dispositivo
+    db=snap.data();
+    _lastSaved=dataStr;
+    localStorage.setItem(STORAGE_KEY,dataStr);
+    if(!S.modal)render();
+    else showToast('Dados sincronizados de outro dispositivo');
+  },err=>console.warn('Firestore sync error',err));
+}catch(e){console.warn('Firebase init error',e);}
 </script>
 </body>
 </html>
