@@ -84,7 +84,8 @@ body{font-family:-apple-system,'Segoe UI',system-ui,sans-serif;background:var(--
 .form-row{display:grid;gap:12px;grid-template-columns:1fr 1fr}
 .field{display:flex;flex-direction:column;gap:5px}
 .field label{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-.field input,.field select,.field textarea{background:var(--surf2);border:1px solid var(--border2);color:var(--text);border-radius:var(--r-sm);padding:8px 10px;font-size:13px;outline:none;transition:border-color .15s;font-family:inherit;width:100%}
+.field input,.field select,.field textarea{background:var(--surf2);border:1px solid var(--border2);color:var(--text);border-radius:var(--r-sm);padding:8px 10px;font-size:16px;outline:none;transition:border-color .15s;font-family:inherit;width:100%}
+@media(min-width:600px){.field input,.field select,.field textarea{font-size:13px}}
 .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--gold)}
 .field textarea{resize:vertical;min-height:70px}
 .field select option{background:var(--surf2)}
@@ -98,7 +99,8 @@ body{font-family:-apple-system,'Segoe UI',system-ui,sans-serif;background:var(--
 .modal-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
 .modal-hdr h3{font-size:15px;font-weight:700}
 .modal-body{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 18px;flex:1}
-.modal-footer{padding:12px 18px;border-top:1px solid var(--border);display:flex;gap:10px;flex-shrink:0}
+.modal-footer{padding:12px 18px;padding-bottom:max(12px,env(safe-area-inset-bottom));border-top:1px solid var(--border);display:flex;gap:10px;flex-shrink:0}
+.bottom-nav{padding-bottom:env(safe-area-inset-bottom)}
 .modal-footer .btn{flex:1;justify-content:center}
 .list-item{display:flex;align-items:center;gap:10px;padding:11px 12px;background:var(--surf);border:1px solid var(--border);border-radius:var(--r);cursor:pointer;transition:border-color .15s,background .15s;text-align:left;width:100%}
 .list-item:hover{border-color:var(--border2);background:var(--surf2)}
@@ -200,6 +202,14 @@ tr:hover td{background:var(--surf2)}
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script>
+// Polyfill requestSubmit para iOS < 15.4
+if(!HTMLFormElement.prototype.requestSubmit){
+  HTMLFormElement.prototype.requestSubmit=function(){
+    const btn=document.createElement('input');
+    btn.type='submit';btn.style.display='none';
+    this.appendChild(btn);btn.click();this.removeChild(btn);
+  };
+}
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════
@@ -354,6 +364,7 @@ function loadDB(){
 let db=loadDB();
 let _lastSaved='';
 function saveDB(){
+  db._ts=Date.now();
   const str=JSON.stringify(db);
   localStorage.setItem(STORAGE_KEY,str);
   _lastSaved=str;
@@ -1937,14 +1948,21 @@ try{
   // Empurra dados locais se Firestore estiver vazio; senão, ouve atualizações em tempo real
   window._fsDb.collection('ondigital').doc('data').onSnapshot(snap=>{
     if(!snap.exists){
-      // Primeiro acesso: sobe os dados locais
       window._fsDb.collection('ondigital').doc('data').set(db);
       return;
     }
-    const dataStr=JSON.stringify(snap.data());
-    if(dataStr===_lastSaved)return; // nossa própria gravação, ignora
-    // Atualização vinda de outro dispositivo
-    db=snap.data();
+    const remote=snap.data();
+    const dataStr=JSON.stringify(remote);
+    if(dataStr===_lastSaved)return;
+    const remoteTs=remote._ts||0;
+    const localTs=db._ts||0;
+    if(localTs>=remoteTs){
+      // Local é mais novo: sobrescreve o Firestore
+      window._fsDb.collection('ondigital').doc('data').set(db);
+      return;
+    }
+    // Remoto é mais novo: atualiza local
+    db=remote;
     _lastSaved=dataStr;
     localStorage.setItem(STORAGE_KEY,dataStr);
     if(!S.modal)render();
