@@ -1,4 +1,4 @@
-const CACHE='ondigital-v1';
+const CACHE='ondigital-v3';
 const OFFLINE_URL='./index.html';
 
 // Instala e faz cache do app shell
