@@ -633,49 +633,120 @@ function pageAgora(){
 // PAGE: FPH SYNC
 // ═══════════════════════════════════════════════════════════════
 function pageFPH(){
-  const data=window._fphData||{};
-  const provaIds=Object.keys(data);
-  const bkRaw=`(function(){var rows=document.querySelectorAll('table tr'),p=[];rows.forEach(function(tr){var t=tr.querySelectorAll('td');if(t.length<4)return;var n=t[0].textContent.trim();if(!n.match(/^\\d+\\s*\\xb0/))return;p.push({order:parseInt(n),name:t[1].textContent.trim(),horse:t[2].textContent.trim().split(/\\d{2}\\/\\d{2}\\/\\d{4}/)[0].trim(),cat:(t[4]||t[3]).textContent.trim().split('\\n')[0].trim()});});var m=location.href.match(/ID=(\\d+)/i),id=m?m[1]:'unknown';fetch('https://firestore.googleapis.com/v1/projects/on-digital-322f4/databases/(default)/documents/fph_sync/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields:{participants:{stringValue:JSON.stringify(p)},url:{stringValue:location.href},provaId:{stringValue:id},ts:{integerValue:''+Date.now()}}})}).then(function(){alert('FPH Sync: '+p.length+' participantes enviados! (Prova ID '+id+')')}).catch(function(e){alert('Erro: '+e.message)});})();`;
-  const bkHref='javascript:'+encodeURIComponent(bkRaw);
-  return`<div style="max-width:700px">
+  const syncData=window._fphData||{};
+  const resultData=window._fphResults||{};
+  const clientNames=db.clients.map(c=>c.name.trim().toLowerCase());
+
+  // Bookmarklet: Ordem de Entrada (clique único)
+  const bkSync=`(function(){var rows=document.querySelectorAll('table tr'),p=[];rows.forEach(function(tr){var t=tr.querySelectorAll('td');if(t.length<4)return;var n=t[0].textContent.trim();if(!n.match(/^\\d+\\s*\\xb0/))return;p.push({order:parseInt(n),name:t[1].textContent.trim(),horse:t[2].textContent.trim().split(/\\d{2}\\/\\d{2}\\/\\d{4}/)[0].trim(),cat:(t[4]||t[3]).textContent.trim().split('\\n')[0].trim()});});var m=location.href.match(/ID=(\\d+)/i),id=m?m[1]:'unknown';fetch('https://firestore.googleapis.com/v1/projects/on-digital-322f4/databases/(default)/documents/fph_sync/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields:{participants:{stringValue:JSON.stringify(p)},url:{stringValue:location.href},provaId:{stringValue:id},ts:{integerValue:''+Date.now()}}})}).then(function(){alert('FPH Sync: '+p.length+' participantes enviados! (Prova ID '+id+')')}).catch(function(e){alert('Erro: '+e.message)});})();`;
+
+  // Bookmarklet: Resultados ao vivo (auto-atualiza a cada 30s)
+  const bkResult=`(function(){if(window._odR){clearInterval(window._odR);window._odR=null;document.getElementById('_od_f')?.remove();return;}function sync(){var rows=document.querySelectorAll('table tr'),data=[];rows.forEach(function(tr){var tds=tr.querySelectorAll('td');if(tds.length<5)return;var pos=tds[0].textContent.trim();if(!pos.match(/^\\d+/))return;var name=tds[1].textContent.trim().replace(/\\s+/g,' ');var horse=tds[2].textContent.trim().replace(/\\s+/g,' ').split(/\\d{2}\\/\\d{2}\\/\\d{4}/)[0].trim();var faults=tds[5]?tds[5].textContent.trim():'';var time=tds[6]?tds[6].textContent.trim():'';data.push({pos:parseInt(pos),name:name,horse:horse,faults:faults,time:time});});var m=location.href.match(/ID=(\\d+)/i),id=m?m[1]:'unknown';fetch('https://firestore.googleapis.com/v1/projects/on-digital-322f4/databases/(default)/documents/fph_results/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields:{results:{stringValue:JSON.stringify(data)},url:{stringValue:location.href},provaId:{stringValue:id},ts:{integerValue:''+Date.now()}}})}).then(function(){var el=document.getElementById('_od_f');if(el)el.innerHTML='\\uD83D\\uDFE2 ON Digital<br><small>'+data.length+' posic\\u0327\\u00F5es \\u2022 '+new Date().toLocaleTimeString('pt-BR')+'</small>';}).catch(function(){var el=document.getElementById('_od_f');if(el)el.innerHTML='\\uD83D\\uDD34 ON Digital<br><small>erro</small>';});}var div=document.createElement('div');div.id='_od_f';div.style.cssText='position:fixed;bottom:16px;right:16px;background:#C09A35;color:#000;padding:10px 14px;border-radius:10px;font-size:12px;font-weight:700;z-index:99999;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.5);text-align:center;line-height:1.5';div.innerHTML='\\uD83D\\uDFE1 ON Digital<br><small>Iniciando...</small>';div.title='Clique para parar';div.onclick=function(){clearInterval(window._odR);window._odR=null;div.remove();};document.body.appendChild(div);sync();window._odR=setInterval(sync,30000);})();`;
+
+  const bkSyncHref='javascript:'+encodeURIComponent(bkSync);
+  const bkResultHref='javascript:'+encodeURIComponent(bkResult);
+
+  // Results section
+  const resultIds=Object.keys(resultData);
+
+  return`<div style="max-width:760px">
     <div style="margin-bottom:18px">
       <h2 style="font-size:18px;font-weight:700;color:var(--text)">FPH Sync</h2>
-      <p style="font-size:12px;color:var(--muted);margin-top:2px">Importe participantes do site da Federação Paulista de Hipismo</p>
+      <p style="font-size:12px;color:var(--muted);margin-top:2px">Sincronize participantes e resultados ao vivo da Federação Paulista de Hipismo</p>
     </div>
+
+    <!-- BOOKMARKLETS -->
     <div class="card" style="margin-bottom:16px">
-      <div class="card-title">Como usar</div>
-      <ol style="font-size:13px;color:var(--muted);line-height:1.8;padding-left:18px;margin-bottom:14px">
-        <li>Arraste o botão abaixo para a barra de favoritos do navegador</li>
-        <li>Acesse <strong style="color:var(--text)">fph.com.br → Calendário → Ordem de Entrada</strong></li>
-        <li>Clique no favorito <strong style="color:var(--gold)">FPH → ON Digital</strong></li>
-        <li>Volte aqui e clique em <strong style="color:var(--text)">Importar</strong></li>
-      </ol>
-      <a href="${bkHref}" onclick="return false;"
-         draggable="true"
-         ondragstart="event.dataTransfer.setData('text/uri-list',this.href);event.dataTransfer.setData('text/plain',this.href);"
-         style="display:inline-flex;align-items:center;gap:7px;padding:10px 18px;background:var(--gold);color:#000;border-radius:var(--r-sm);font-size:13px;font-weight:700;text-decoration:none;cursor:grab;user-select:none">
-        ${IC.globe} FPH → ON Digital
-      </a>
-      <p style="font-size:11px;color:var(--muted);margin-top:8px">Arraste este botão para a barra de favoritos do seu navegador</p>
+      <div class="card-title">Bookmarklets — arraste para a barra de favoritos</div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px">
+        <div>
+          <a href="${bkSyncHref}" onclick="return false;" draggable="true"
+             ondragstart="event.dataTransfer.setData('text/uri-list',this.href);event.dataTransfer.setData('text/plain',this.href);"
+             style="display:inline-flex;align-items:center;gap:6px;padding:9px 14px;background:var(--gold);color:#000;border-radius:var(--r-sm);font-size:12px;font-weight:700;text-decoration:none;cursor:grab;user-select:none">
+            ${IC.globe} Ordem de Entrada
+          </a>
+          <div style="font-size:10px;color:var(--muted);margin-top:4px">Use em fph.com.br/OrdemEntrada — clique uma vez</div>
+        </div>
+        <div>
+          <a href="${bkResultHref}" onclick="return false;" draggable="true"
+             ondragstart="event.dataTransfer.setData('text/uri-list',this.href);event.dataTransfer.setData('text/plain',this.href);"
+             style="display:inline-flex;align-items:center;gap:6px;padding:9px 14px;background:var(--green);color:#000;border-radius:var(--r-sm);font-size:12px;font-weight:700;text-decoration:none;cursor:grab;user-select:none">
+            ${IC.list} Resultados ao vivo
+          </a>
+          <div style="font-size:10px;color:var(--muted);margin-top:4px">Use em fph.com.br/Resultados — atualiza a cada 30s</div>
+        </div>
+      </div>
     </div>
-    ${provaIds.length===0?`<div class="empty">${IC.globe}<p>Nenhuma prova sincronizada ainda.<br>Use o bookmarklet no site da FPH.</p></div>`:
-    provaIds.map(pid=>{
-      const prova=data[pid];
+
+    <!-- RESULTADOS AO VIVO -->
+    <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:8px">
+      ${IC.list} Resultados ao vivo
+      ${resultIds.length?`<span style="font-size:10px;font-weight:600;background:var(--green-bg);color:var(--green);padding:2px 8px;border-radius:20px">LIVE</span>`:''}
+    </div>
+    ${resultIds.length===0?`<div class="card" style="margin-bottom:16px"><p style="font-size:13px;color:var(--muted);text-align:center;padding:12px 0">Nenhum resultado ainda.<br>Use o bookmarklet <strong>Resultados ao vivo</strong> na página de resultados da FPH.</p></div>`:
+    resultIds.map(rid=>{
+      const prova=resultData[rid];
+      const results=prova.results||[];
+      const ts=prova.ts?new Date(Number(prova.ts)).toLocaleTimeString('pt-BR'):'—';
+      const finalized=results.filter(r=>r.faults||r.time).length;
+      return`<div class="card" style="margin-bottom:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div>
+            <div style="font-size:13px;font-weight:700">Prova ${esc(rid)}</div>
+            <div style="font-size:11px;color:var(--muted)">Atualizado: ${ts} · ${finalized}/${results.length} finalizados</div>
+          </div>
+          <span style="font-size:10px;font-weight:600;background:var(--green-bg);color:var(--green);padding:2px 8px;border-radius:20px">🟢 AO VIVO</span>
+        </div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;font-size:12px;border-collapse:collapse">
+            <thead><tr style="color:var(--muted);border-bottom:1px solid var(--border)">
+              <th style="text-align:left;padding:4px 6px;width:28px">Pos</th>
+              <th style="text-align:left;padding:4px 6px">Competidor</th>
+              <th style="text-align:left;padding:4px 6px">Cavalo</th>
+              <th style="text-align:right;padding:4px 6px">Faltas</th>
+              <th style="text-align:right;padding:4px 6px">Tempo</th>
+            </tr></thead>
+            <tbody>${results.map(r=>{
+              const nameLC=r.name.toLowerCase();
+              const isClient=clientNames.some(cn=>cn&&nameLC.includes(cn));
+              const bg=isClient?'background:rgba(192,154,53,.08);':'';
+              const nameStyle=isClient?'color:var(--gold);font-weight:700':'font-weight:500';
+              const shortName=r.name.length>35?r.name.substring(0,35)+'…':r.name;
+              const shortHorse=r.horse.length>25?r.horse.substring(0,25)+'…':r.horse;
+              return`<tr style="border-bottom:1px solid var(--border);${bg}">
+                <td style="padding:5px 6px;color:var(--muted);font-variant-numeric:tabular-nums">${r.pos}º</td>
+                <td style="padding:5px 6px;${nameStyle}" title="${esc(r.name)}">${esc(shortName)}${isClient?' ⭐':''}</td>
+                <td style="padding:5px 6px;color:var(--muted)" title="${esc(r.horse)}">${esc(shortHorse)}</td>
+                <td style="padding:5px 6px;text-align:right;color:${r.faults&&r.faults!=='0(0+0)'?'var(--red)':'var(--green)'}">${r.faults||'—'}</td>
+                <td style="padding:5px 6px;text-align:right;font-variant-numeric:tabular-nums">${r.time||'—'}</td>
+              </tr>`;
+            }).join('')}</tbody>
+          </table>
+        </div>
+      </div>`;
+    }).join('')}
+
+    <!-- ORDEM DE ENTRADA -->
+    <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;margin-top:6px;display:flex;align-items:center;gap:8px">
+      ${IC.list} Ordem de Entrada
+    </div>
+    ${Object.keys(syncData).length===0?`<div class="card"><p style="font-size:13px;color:var(--muted);text-align:center;padding:12px 0">Nenhuma prova sincronizada.<br>Use o bookmarklet <strong>Ordem de Entrada</strong> no site da FPH.</p></div>`:
+    Object.keys(syncData).map(pid=>{
+      const prova=syncData[pid];
       const parts=prova.participants||[];
       const ts=prova.ts?new Date(Number(prova.ts)).toLocaleString('pt-BR'):'—';
       return`<div class="card" style="margin-bottom:12px">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px">
           <div>
-            <div style="font-size:14px;font-weight:700">Prova ${esc(pid)}</div>
+            <div style="font-size:13px;font-weight:700">Prova ${esc(pid)}</div>
             <div style="font-size:11px;color:var(--muted);margin-top:2px">Sinc: ${ts} · ${parts.length} participantes</div>
-            ${prova.url?`<a href="${esc(prova.url)}" target="_blank" rel="noopener" style="font-size:11px;color:var(--blue);text-decoration:none;word-break:break-all">${esc(prova.url)}</a>`:''}
           </div>
           <button class="btn btn-primary btn-sm" style="flex-shrink:0" data-action="import-fph-prova" data-provaid="${esc(pid)}">${IC.download} Importar</button>
         </div>
         <div style="overflow-x:auto">
           <table style="width:100%;font-size:12px;border-collapse:collapse">
             <thead><tr style="color:var(--muted);border-bottom:1px solid var(--border)">
-              <th style="text-align:left;padding:4px 6px;width:30px">#</th>
+              <th style="text-align:left;padding:4px 6px;width:28px">#</th>
               <th style="text-align:left;padding:4px 6px">Competidor</th>
               <th style="text-align:left;padding:4px 6px">Cavalo</th>
               <th style="text-align:left;padding:4px 6px">Categoria</th>
@@ -2096,7 +2167,7 @@ try{
   if(!firebase.apps.length)firebase.initializeApp(firebaseConfig);
   window._fsDb=firebase.firestore();
   // Empurra dados locais se Firestore estiver vazio; senão, ouve atualizações em tempo real
-  // Listen to FPH sync collection
+  // Listen to FPH sync collection (Ordem de Entrada)
   window._fphData={};
   window._fsDb.collection('fph_sync').onSnapshot(snap=>{
     snap.forEach(doc=>{
@@ -2109,8 +2180,24 @@ try{
       };
     });
     if(S.page==='fph')render();
-    else if(snap.docChanges().length>0)showToast('Nova prova FPH sincronizada!');
+    else if(snap.docChanges().some(c=>c.type!=='removed'))showToast('Ordem de Entrada FPH atualizada!');
   },err=>console.warn('FPH sync error',err));
+
+  // Listen to FPH results collection (Resultados ao vivo)
+  window._fphResults={};
+  window._fsDb.collection('fph_results').onSnapshot(snap=>{
+    snap.forEach(doc=>{
+      const d=doc.data();
+      window._fphResults[doc.id]={
+        results:JSON.parse(d.results||'[]'),
+        url:d.url||'',
+        provaId:d.provaId||doc.id,
+        ts:d.ts||0
+      };
+    });
+    if(S.page==='fph')render();
+    else if(snap.docChanges().some(c=>c.type!=='removed'))showToast('Resultados FPH atualizados ao vivo!');
+  },err=>console.warn('FPH results error',err));
 
   window._fsDb.collection('ondigital').doc('data').onSnapshot(snap=>{
     if(!snap.exists){
