@@ -874,20 +874,48 @@ function pageDespesas(){
 // PAGE: CONFIG
 // ═══════════════════════════════════════════════════════════════
 function pageConfig(){
-  const sub=S.sub||'eventos';
-  const tabs=['eventos','produtos','equipe','equipamentos'];
+  const sub=S.sub||'dados';
+  const tabs=['dados','eventos','produtos','equipe','equipamentos'];
+  const tabLabels={dados:'Dados',eventos:'Eventos',produtos:'Produtos',equipe:'Equipe',equipamentos:'Equipamentos'};
   let content='';
-  if(sub==='eventos')content=configEventos();
+  if(sub==='dados')content=configDados();
+  else if(sub==='eventos')content=configEventos();
   else if(sub==='produtos')content=configProdutos();
   else if(sub==='equipe')content=configEquipe();
   else if(sub==='equipamentos')content=configEquip();
   return`
     <div class="sec-hdr"><div class="sec-title">Configurações</div></div>
     <div class="page-tabs">
-      ${tabs.map(t=>`<div class="page-tab${sub===t?' active':''}" data-action="config-tab" data-val="${t}">${t.charAt(0).toUpperCase()+t.slice(1)}</div>`).join('')}
+      ${tabs.map(t=>`<div class="page-tab${sub===t?' active':''}" data-action="config-tab" data-val="${t}">${tabLabels[t]}</div>`).join('')}
     </div>
     ${content}
   `;
+}
+
+function configDados(){
+  const nClients=db.clients.length;
+  const nHorses=db.horses.length;
+  const nParts=db.participations.length;
+  const nContracts=db.contracts.length;
+  return`<div class="stack">
+    <div style="background:var(--surf2);border-radius:var(--r);padding:14px;margin-bottom:4px">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px">BANCO DE DADOS ATUAL</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px">
+        <div>👤 ${nClients} cliente(s)</div><div>🐴 ${nHorses} cavalo(s)</div>
+        <div>📋 ${nContracts} contrato(s)</div><div>🎬 ${nParts} participação(ões)</div>
+      </div>
+    </div>
+    <div style="background:var(--surf2);border-radius:var(--r);padding:14px;margin-bottom:4px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:6px">📤 Exportar Dados</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Baixa um arquivo .json com <strong>todos</strong> os dados — clientes, cavalos, participações, contratos, despesas. Use para backup ou para transferir para outro dispositivo (celular, GitHub Pages).</div>
+      <button class="btn btn-primary btn-sm" data-action="export-data">⬇ Baixar backup.json</button>
+    </div>
+    <div style="background:var(--surf2);border-radius:var(--r);padding:14px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:6px">📥 Importar Dados</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Carrega um arquivo .json exportado anteriormente. <span style="color:var(--red);font-weight:600">Atenção: substitui todos os dados atuais.</span></div>
+      <button class="btn btn-ghost btn-sm" data-action="import-data">⬆ Escolher arquivo .json</button>
+    </div>
+  </div>`;
 }
 
 function configEventos(){
@@ -1092,8 +1120,8 @@ function modalParticipacao(editId){
         </div>
 
         <div class="form-section" style="display:flex;align-items:center;justify-content:space-between">
-          <span>Provas / Dias</span>
-          ${part?'':`<button type="button" id="btn-add-day" class="btn btn-ghost btn-sm" style="font-size:12px">${IC.plus} Dia</button>`}
+          <span>Provas <span style="color:var(--muted);font-size:11px;font-weight:400">(cada linha = uma prova com cavalo diferente)</span></span>
+          ${part?'':`<button type="button" id="btn-add-day" class="btn btn-ghost btn-sm" style="font-size:12px">${IC.plus} Prova</button>`}
         </div>
         <div id="days-list">
           <div class="day-row" style="background:var(--surf2);border-radius:var(--r-sm);padding:10px;margin-bottom:8px">
@@ -1451,6 +1479,34 @@ function handleAction(action,el){
       S.modal='editar-participacao';S.editId=id;render();break;
     case 'new-part-for-client':
       S._prefillClient=id;S.modal='nova-participacao';render();break;
+    case 'export-data':{
+      const json=JSON.stringify(db,null,2);
+      const blob=new Blob([json],{type:'application/json'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url;a.download=`ondigital_backup_${todayISO()}.json`;
+      document.body.appendChild(a);a.click();document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Dados exportados com sucesso');break;}
+    case 'import-data':{
+      const inp=document.createElement('input');
+      inp.type='file';inp.accept='.json,application/json';
+      inp.addEventListener('change',()=>{
+        const file=inp.files[0];if(!file)return;
+        const reader=new FileReader();
+        reader.onload=e=>{
+          try{
+            const data=JSON.parse(e.target.result);
+            if(!data.events||!data.clients){showToast('Arquivo inválido — não é um backup ON Digital','error');return;}
+            if(!confirm(`Importar ${data.clients.length} cliente(s) e ${(data.participations||[]).length} participação(ões)?\n\nISTO SUBSTITUIRÁ todos os dados atuais.`))return;
+            localStorage.setItem('ondigital_v3',JSON.stringify(data));
+            showToast('Dados importados! Recarregando...');
+            setTimeout(()=>location.reload(),1500);
+          }catch{showToast('Erro ao ler arquivo','error');}
+        };
+        reader.readAsText(file);
+      });
+      inp.click();break;}
     case 'open-add-horse':
       S._horseClient=id;S.modal='add-horse';render();break;
     case 'back-to-client':
