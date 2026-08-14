@@ -1,0 +1,1659 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<title>ON Digital — Gestão de Eventos</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#08111E;--surf:#0F1E33;--surf2:#172840;--surf3:#1E3352;
+  --gold:#C09A35;--gold-l:#D4AF50;--gold-d:#9A7A20;
+  --text:#EEF2FA;--muted:#6B82A0;--border:#1E3352;--border2:#253F60;
+  --green:#25C07A;--amber:#E8920A;--red:#DC4A4A;--blue:#4A8ED6;--purple:#8B70D4;--teal:#12B8A6;
+  --green-bg:rgba(37,192,122,.12);--amber-bg:rgba(232,146,10,.12);--red-bg:rgba(220,74,74,.12);
+  --blue-bg:rgba(74,142,214,.12);--purple-bg:rgba(139,112,212,.12);--teal-bg:rgba(18,184,166,.12);
+  --sidebar:200px;--header:52px;--bottom:60px;
+  --r:8px;--r-lg:12px;--r-sm:5px;
+}
+body{font-family:-apple-system,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.4}
+#root{display:flex;flex-direction:column;height:100vh;height:100dvh}
+.hdr{height:var(--header);background:var(--surf);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 12px;gap:10px;flex-shrink:0;z-index:50}
+.layout{display:flex;flex:1;overflow:hidden}
+.sidebar{width:var(--sidebar);background:var(--surf);border-right:1px solid var(--border);flex-shrink:0;overflow-y:auto;padding:8px 0;display:none;flex-direction:column}
+.content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px}
+.bottom-nav{height:var(--bottom);background:var(--surf);border-top:1px solid var(--border);display:flex;flex-shrink:0}
+@media(min-width:768px){.sidebar{display:flex}.bottom-nav{display:none}.content{padding:20px 24px}}
+.hdr-logo{font-weight:700;font-size:15px;color:var(--gold);letter-spacing:.04em;white-space:nowrap}
+.hdr-logo span{color:var(--muted);font-weight:400}
+.hdr-evt{flex:1;min-width:0}
+.hdr-evt select{width:100%;background:var(--surf2);border:1px solid var(--border2);color:var(--text);border-radius:var(--r-sm);padding:6px 8px;font-size:13px;cursor:pointer;outline:none}
+.hdr-evt select:focus{border-color:var(--gold)}
+.hdr-btn{width:36px;height:36px;background:var(--surf2);border:1px solid var(--border2);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);flex-shrink:0;transition:color .15s,border-color .15s}
+.hdr-btn:hover{color:var(--gold);border-color:var(--gold-d)}
+.sb-nav{padding:4px 8px}
+.sb-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:var(--r-sm);cursor:pointer;color:var(--muted);font-size:13px;font-weight:500;transition:all .15s;white-space:nowrap}
+.sb-item:hover{background:var(--surf2);color:var(--text)}
+.sb-item.active{background:rgba(192,154,53,.12);color:var(--gold)}
+.sb-item svg{flex-shrink:0;width:16px;height:16px}
+.sb-section{font-size:10px;font-weight:600;letter-spacing:.1em;color:var(--muted);padding:14px 18px 4px;text-transform:uppercase}
+.bn-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:var(--muted);font-size:10px;font-weight:500;letter-spacing:.02em;transition:color .15s;border:none;background:none;-webkit-tap-highlight-color:transparent}
+.bn-item svg{width:20px;height:20px}
+.bn-item.active{color:var(--gold)}
+.card{background:var(--surf);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px}
+.card-sm{padding:10px 12px}
+.card-title{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.card-grid{display:grid;gap:10px}
+.kpi{background:var(--surf);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 14px 12px}
+.kpi-label{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.kpi-value{font-size:22px;font-weight:700;line-height:1.2;margin-top:4px;font-variant-numeric:tabular-nums}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:3px}
+.kpi.gold .kpi-value{color:var(--gold)}.kpi.green .kpi-value{color:var(--green)}.kpi.red .kpi-value{color:var(--red)}.kpi.amber .kpi-value{color:var(--amber)}.kpi.blue .kpi-value{color:var(--blue)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:var(--r-sm);font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .15s;white-space:nowrap}
+.btn svg{width:15px;height:15px;flex-shrink:0}
+.btn-primary{background:var(--gold);color:#000}.btn-primary:hover{background:var(--gold-l)}
+.btn-ghost{background:var(--surf2);color:var(--text);border:1px solid var(--border2)}.btn-ghost:hover{background:var(--surf3)}
+.btn-danger{background:var(--red-bg);color:var(--red);border:1px solid rgba(220,74,74,.25)}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-icon{width:32px;height:32px;padding:0;justify-content:center;border-radius:var(--r-sm)}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.02em}
+.badge::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
+.badge-aguardando{color:#8898AA;background:rgba(136,152,170,.12)}
+.badge-reconhecimento{color:var(--blue);background:var(--blue-bg)}
+.badge-proximo{color:var(--amber);background:var(--amber-bg)}
+.badge-filmado{color:var(--green);background:var(--green-bg)}
+.badge-edicao{color:var(--purple);background:var(--purple-bg)}
+.badge-entregue{color:var(--teal);background:var(--teal-bg)}
+.badge-nao_filmado{color:var(--muted);background:rgba(107,130,160,.1)}
+.badge-pago{color:var(--green);background:var(--green-bg)}
+.badge-parcial{color:var(--amber);background:var(--amber-bg)}
+.badge-pendente{color:var(--red);background:var(--red-bg)}
+.badge-cortesia{color:var(--purple);background:var(--purple-bg)}
+.badge-por_cavalo{color:#C09A35;background:rgba(192,154,53,.13);border:1px solid rgba(192,154,53,.22)}
+.badge-por_prova{color:#4A8ED6;background:rgba(74,142,214,.13);border:1px solid rgba(74,142,214,.22)}
+.badge-pacote{color:#8B70D4;background:rgba(139,112,212,.13);border:1px solid rgba(139,112,212,.22)}
+.badge-mensal{color:#4A8ED6;background:rgba(74,142,214,.13);border:1px solid rgba(74,142,214,.22)}
+.badge-trimestral{color:#8B70D4;background:rgba(139,112,212,.13);border:1px solid rgba(139,112,212,.22)}
+.badge-semestral{color:#12B8A6;background:rgba(18,184,166,.13);border:1px solid rgba(18,184,166,.22)}
+.badge-anual{color:#25C07A;background:rgba(37,192,122,.13);border:1px solid rgba(37,192,122,.22)}
+.form-grid{display:grid;gap:12px}
+.form-row{display:grid;gap:12px;grid-template-columns:1fr 1fr}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.field input,.field select,.field textarea{background:var(--surf2);border:1px solid var(--border2);color:var(--text);border-radius:var(--r-sm);padding:8px 10px;font-size:13px;outline:none;transition:border-color .15s;font-family:inherit;width:100%}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--gold)}
+.field textarea{resize:vertical;min-height:70px}
+.field select option{background:var(--surf2)}
+.field input[type="checkbox"]{width:auto;cursor:pointer}
+.field-hint{font-size:11px;color:var(--muted);margin-top:2px}
+.form-section{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding-bottom:8px;border-bottom:1px solid var(--border);margin-top:4px}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(2px)}
+@media(min-width:600px){.modal-overlay{align-items:center}}
+.modal{background:var(--surf);border-radius:var(--r-lg) var(--r-lg) 0 0;width:100%;max-width:560px;max-height:92dvh;display:flex;flex-direction:column;overflow:hidden}
+@media(min-width:600px){.modal{border-radius:var(--r-lg);max-height:88dvh}}
+.modal-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
+.modal-hdr h3{font-size:15px;font-weight:700}
+.modal-body{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 18px;flex:1}
+.modal-footer{padding:12px 18px;border-top:1px solid var(--border);display:flex;gap:10px;flex-shrink:0}
+.modal-footer .btn{flex:1;justify-content:center}
+.list-item{display:flex;align-items:center;gap:10px;padding:11px 12px;background:var(--surf);border:1px solid var(--border);border-radius:var(--r);cursor:pointer;transition:border-color .15s,background .15s;text-align:left;width:100%}
+.list-item:hover{border-color:var(--border2);background:var(--surf2)}
+.list-item-info{flex:1;min-width:0}
+.list-item-name{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.list-item-sub{font-size:12px;color:var(--muted);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.list-item-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+.entry-row{display:flex;gap:10px;padding:10px 12px;background:var(--surf);border:1px solid var(--border);border-radius:var(--r);cursor:pointer;transition:border-color .15s}
+.entry-row:hover{border-color:var(--border2)}
+.entry-time{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:44px;flex-shrink:0}
+.entry-time-main{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--text)}
+.entry-time-recog{font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
+.entry-divider{width:1px;background:var(--border2);flex-shrink:0}
+.entry-info{flex:1;min-width:0}
+.entry-client{font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.entry-horse{font-size:12px;color:var(--muted);margin-top:1px}
+.entry-meta{font-size:11px;color:var(--muted);margin-top:3px}
+.entry-badges{display:flex;gap:5px;margin-top:5px;flex-wrap:wrap}
+.entry-num{font-size:18px;font-weight:800;color:var(--border2);min-width:30px;text-align:center;font-variant-numeric:tabular-nums;flex-shrink:0}
+.agora-next{background:var(--surf);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px;position:relative;overflow:hidden}
+.agora-next::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.agora-next.recog::before{background:var(--blue)}.agora-next.prova::before{background:var(--amber)}
+.agora-eyebrow{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+.agora-eyebrow.recog{color:var(--blue)}.agora-eyebrow.prova{color:var(--amber)}
+.agora-client{font-size:20px;font-weight:800;line-height:1.1}
+.agora-horse{font-size:13px;color:var(--muted);margin-top:3px}
+.agora-time{font-size:28px;font-weight:800;color:var(--gold);font-variant-numeric:tabular-nums;margin-top:6px}
+.agora-meta{font-size:12px;color:var(--muted);margin-top:3px}
+.agora-empty{text-align:center;padding:20px;color:var(--muted)}
+.status-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.status-opt{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:var(--r);cursor:pointer;border:2px solid var(--border);background:var(--surf2);transition:all .15s}
+.status-opt:hover{border-color:var(--border2)}.status-opt.selected{border-color:currentColor}
+.status-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.status-opt-label{font-size:13px;font-weight:600}
+.search-wrap{position:relative}.search-wrap input{padding-left:32px}
+.search-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.sec-title{font-size:16px;font-weight:700}
+.sec-sub{font-size:12px;color:var(--muted);margin-top:1px}
+.filter-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.ftab{padding:5px 11px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border2);background:var(--surf2);color:var(--muted);transition:all .15s;white-space:nowrap}
+.ftab.active{background:rgba(192,154,53,.15);border-color:var(--gold-d);color:var(--gold)}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--surf2);border:1px solid var(--border2);color:var(--text);padding:10px 16px;border-radius:var(--r);font-size:13px;font-weight:500;z-index:300;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.toast.success{border-color:var(--green);background:var(--green-bg)}.toast.error{border-color:var(--red);background:var(--red-bg)}
+@media(min-width:768px){.toast{bottom:20px}}
+.fin-bar-wrap{display:flex;flex-direction:column;gap:8px}
+.fin-bar-row{display:flex;align-items:center;gap:10px}
+.fin-bar-label{font-size:12px;color:var(--muted);min-width:80px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fin-bar-track{flex:1;height:6px;background:var(--surf3);border-radius:3px;overflow:hidden}
+.fin-bar-fill{height:100%;border-radius:3px;background:var(--gold);transition:width .4s ease}
+.fin-bar-val{font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;min-width:60px;text-align:right}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:48px 24px;text-align:center;color:var(--muted)}
+.empty svg{width:40px;height:40px;opacity:.4}.empty p{font-size:14px;max-width:260px}
+.divider{height:1px;background:var(--border);margin:12px 0}
+.stack{display:flex;flex-direction:column;gap:8px}
+.row{display:flex;align-items:center;gap:8px}
+.ml-auto{margin-left:auto}
+.page-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:14px;gap:0;overflow-x:auto}
+.page-tab{padding:9px 14px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s}
+.page-tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+.clock{font-size:13px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums;letter-spacing:.05em}
+.stages{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap}
+.stage-btn{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1.5px solid var(--border2);background:transparent;color:var(--muted);transition:all .15s;letter-spacing:.01em;white-space:nowrap}
+.stage-btn:hover{border-color:var(--gold-d);color:var(--gold)}
+.stage-btn.done{background:rgba(37,192,122,.15);border-color:var(--green);color:var(--green)}
+.ordem-card{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surf);border:1px solid var(--border);border-radius:var(--r-lg);cursor:default;transition:border-color .15s}
+.ordem-card:hover{border-color:var(--border2)}
+.ordem-num-box{width:52px;height:52px;border-radius:var(--r);background:var(--surf3);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;flex-shrink:0;cursor:pointer;border:2px solid transparent;transition:border-color .15s,background .15s}
+.ordem-num-box:hover{border-color:var(--gold);background:rgba(192,154,53,.08)}
+.ordem-num-box.editing{border-color:var(--gold)}
+.ordem-info{flex:1;min-width:0}
+.ordem-client{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ordem-horse{font-size:12px;color:var(--muted);margin-top:2px}
+.ordem-meta{display:flex;gap:6px;margin-top:5px;flex-wrap:wrap;align-items:center}
+.ordem-time{font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted);display:flex;align-items:center;gap:3px}
+.num-input{width:52px;height:52px;background:var(--surf2);border:2px solid var(--gold);color:var(--text);border-radius:var(--r);font-size:22px;font-weight:800;text-align:center;font-variant-numeric:tabular-nums;outline:none;padding:0}
+.tbl-wrap{overflow-x:auto;border-radius:var(--r)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:8px 12px;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);background:var(--surf2)}
+td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--surf2)}
+.del-btn{color:var(--muted);cursor:pointer;padding:4px;border-radius:4px;display:flex;align-items:center;transition:color .15s}
+.del-btn:hover{color:var(--red)}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.billing-sel{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px}
+.billing-opt{padding:8px;border-radius:var(--r-sm);border:2px solid var(--border2);background:var(--surf2);cursor:pointer;text-align:center;transition:all .15s}
+.billing-opt:hover{border-color:var(--border2);background:var(--surf3)}
+.billing-opt.active{border-color:var(--gold);background:rgba(192,154,53,.08)}
+.billing-opt-label{font-size:12px;font-weight:700;color:var(--text)}
+.billing-opt-desc{font-size:10px;color:var(--muted);margin-top:2px}
+.client-avatar{width:38px;height:38px;border-radius:50%;background:rgba(192,154,53,.15);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;color:var(--gold);flex-shrink:0;text-transform:uppercase}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+// ═══════════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════════
+const FILM=[
+  {id:'aguardando',    label:'Aguardando',       color:'#8898AA'},
+  {id:'reconhecimento',label:'Reconhecimento',   color:'#4A8ED6'},
+  {id:'proximo',       label:'Próximo a saltar',  color:'#E8920A'},
+  {id:'filmado',       label:'Filmado',           color:'#25C07A'},
+  {id:'edicao',        label:'Em edição',         color:'#8B70D4'},
+  {id:'entregue',      label:'Entregue',          color:'#12B8A6'},
+  {id:'nao_filmado',   label:'Não filmado',       color:'#4A5568'},
+];
+const PAY_STATUS=[
+  {id:'pendente',label:'Pendente',color:'#DC4A4A'},
+  {id:'parcial', label:'Parcial', color:'#E8920A'},
+  {id:'pago',    label:'Pago',    color:'#25C07A'},
+  {id:'cortesia',label:'Cortesia',color:'#8B70D4'},
+];
+const PAY_METHODS=['Pix','Dinheiro','Cartão','Transferência','Cheque','Outros'];
+const BILLING_MODELS=[
+  {id:'por_cavalo',label:'Por Cavalo',desc:'Valor por cavalo'},
+  {id:'por_prova', label:'Por Prova', desc:'Valor pela prova inteira'},
+  {id:'pacote',    label:'Pacote',    desc:'Contrato recorrente'},
+];
+const PACKAGE_TYPES=[
+  {id:'mensal',    label:'Mensal'},
+  {id:'trimestral',label:'Trimestral'},
+  {id:'semestral', label:'Semestral'},
+  {id:'anual',     label:'Anual'},
+];
+const EXP_CATS=['Deslocamento','Combustível','Pedágio','Hospedagem','Alimentação',
+  'Diária equipe','Aluguel equipamento','Material','Serviços terceiros',
+  'Marketing','Plataformas','Impostos/Taxas','Outros'];
+const TEAM_ROLES=['Cinegrafista','Editor','Fotógrafo','Assistente','Motorista','Técnico de som','Coordenador','Outros'];
+
+// ═══════════════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════════════
+function uid(){return Math.random().toString(36).slice(2)+Date.now().toString(36)}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function cur(n){return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(n||0)}
+function fmtDate(s){if(!s)return'—';const[y,m,d]=s.split('-');return`${d}/${m}/${y}`}
+function brNow(){return new Date(Date.now()-10800000)}
+function todayISO(){const b=brNow();return b.getUTCFullYear()+'-'+String(b.getUTCMonth()+1).padStart(2,'0')+'-'+String(b.getUTCDate()).padStart(2,'0')}
+function nowTime(){const b=brNow();return String(b.getUTCHours()).padStart(2,'0')+':'+String(b.getUTCMinutes()).padStart(2,'0')}
+function calcRecog(t){if(!t)return'';const[h,m]=t.split(':').map(Number);let mins=h*60+m-30;if(mins<0)mins+=1440;return String(Math.floor(mins/60)).padStart(2,'0')+':'+String(mins%60).padStart(2,'0')}
+function toMins(t){if(!t)return Infinity;const[h,m]=t.split(':').map(Number);return h*60+m}
+function filmLabel(id){return FILM.find(f=>f.id===id)||FILM[0]}
+function payLabel(id){return PAY_STATUS.find(p=>p.id===id)||PAY_STATUS[0]}
+function billingLabel(id){return BILLING_MODELS.find(b=>b.id===id)||BILLING_MODELS[0]}
+function billingBadge(bm,small){const b=billingLabel(bm);return`<span class="badge badge-${b.id}"${small?' style="font-size:10px"':''}>${b.label}</span>`}
+function stageBtns(part){
+  const s=[{key:'checkRecog',label:'Reconhecimento'},{key:'checkPaddock',label:'Paddock'},{key:'checkProva',label:'Prova'}];
+  return`<div class="stages">${s.map(x=>`<button class="stage-btn${part[x.key]?' done':''}" data-action="toggle-check" data-id="${part.id}" data-key="${x.key}" onclick="event.stopPropagation()">${x.label}${part[x.key]?' ✓':''}</button>`).join('')}</div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DATABASE — v3
+// ═══════════════════════════════════════════════════════════════
+const STORAGE_KEY='ondigital_v3';
+
+function defaultDB(){
+  return{
+    events:[],
+    clients:[],    // global — sem eventId
+    horses:[],     // {id, clientId, name, notes}
+    contracts:[],  // {id, clientId, eventId|null, billingModel, horseId|null, packageType|null, agreedValue, paidValue, paymentMethod, payStatus, notes}
+    participations:[], // {id, eventId, clientId, horseId, contractId, day, proofName, inscriptionNumber, category, proofTime, recognitionTime, recognitionOverride, filmStatus, cameraman, materialLink, filmNotes, checkRecog, checkPaddock, checkProva}
+    expenses:[],
+    team:[],
+    equipment:[],
+    products:[
+      {id:uid(),name:'Vídeo 4K Personalizado',price:150,cost:25},
+      {id:uid(),name:'Vídeo Standard',price:80,cost:15},
+      {id:uid(),name:'Pacote Vídeo + Fotos',price:250,cost:45},
+      {id:uid(),name:'Transmissão ao Vivo',price:500,cost:100},
+    ],
+  };
+}
+
+function migrateV2(old){
+  const db=defaultDB();
+  db.events=old.events||[];
+  db.expenses=old.expenses||[];
+  db.team=old.team||[];
+  db.equipment=old.equipment||[];
+  db.products=old.products||db.products;
+
+  // Deduplica clientes por nome (global)
+  const nameMap={};
+  (old.clients||[]).forEach(c=>{
+    const key=c.name.toLowerCase().trim();
+    if(!nameMap[key]){
+      const nc={id:uid(),name:c.name,phone:c.phone||'',instagram:c.instagram||'',notes:c.notes||''};
+      db.clients.push(nc);
+      nameMap[key]=nc.id;
+    }
+  });
+
+  // Converte entries → horses + contracts + participations
+  (old.entries||[]).forEach(e=>{
+    const oldClient=(old.clients||[]).find(c=>c.id===e.clientId)||{name:'Sem nome'};
+    const clientId=nameMap[oldClient.name.toLowerCase().trim()]||null;
+    if(!clientId)return;
+
+    // Mapa billingModel do tipo do cliente
+    const oldTipo=oldClient.tipo||'por_video';
+    let billingModel='por_cavalo';
+    let packageType=null;
+    if(oldTipo==='mensal'||oldTipo==='trimestral'||oldTipo==='semestral'||oldTipo==='anual'){
+      billingModel='pacote';packageType=oldTipo;
+    }
+
+    const horse={id:uid(),clientId,name:e.horseName||'Cavalo',notes:''};
+    db.horses.push(horse);
+
+    const contract={
+      id:uid(),clientId,
+      eventId:billingModel==='pacote'?null:e.eventId,
+      billingModel,horseId:billingModel==='por_cavalo'?horse.id:null,
+      packageType,
+      agreedValue:parseFloat(e.contractedValue)||0,
+      paidValue:parseFloat(e.paidValue)||0,
+      paymentMethod:e.paymentMethod||'Pix',
+      payStatus:e.payStatus||'pendente',
+      notes:'',
+    };
+    db.contracts.push(contract);
+
+    db.participations.push({
+      id:uid(),eventId:e.eventId,clientId,horseId:horse.id,contractId:contract.id,
+      day:e.day||'',proofName:e.proof||'',inscriptionNumber:e.inscriptionNumber||'',
+      category:e.category||'',proofTime:e.proofTime||'',recognitionTime:e.recognitionTime||'',
+      recognitionOverride:e.recognitionOverride||false,
+      filmStatus:e.filmStatus||'aguardando',
+      cameraman:e.cameraman||'',materialLink:e.materialLink||'',filmNotes:e.notes||'',
+      checkRecog:e.checkRecog||false,checkPaddock:e.checkPaddock||false,checkProva:e.checkProva||false,
+    });
+  });
+  return db;
+}
+
+function loadDB(){
+  try{
+    const v3=localStorage.getItem('ondigital_v3');
+    if(v3)return JSON.parse(v3);
+    const v2=localStorage.getItem('ondigital_v2');
+    if(v2){const migrated=migrateV2(JSON.parse(v2));localStorage.setItem('ondigital_v3',JSON.stringify(migrated));return migrated;}
+  }catch(e){}
+  return defaultDB();
+}
+let db=loadDB();
+function saveDB(){localStorage.setItem(STORAGE_KEY,JSON.stringify(db))}
+
+// Helpers de acesso
+function getEvent(id){return db.events.find(e=>e.id===id)}
+function getClient(id){return db.clients.find(c=>c.id===id)||{name:'—'}}
+function getHorse(id){return db.horses.find(h=>h.id===id)||{name:'—'}}
+function getContract(id){return db.contracts.find(c=>c.id===id)}
+function getEventParticipations(evtId){return db.participations.filter(p=>p.eventId===evtId)}
+function getEventExpenses(evtId){return db.expenses.filter(e=>e.eventId===evtId)}
+function getEventTeam(evtId){return db.team.filter(t=>t.eventId===evtId)}
+function getClientHorses(clientId){return db.horses.filter(h=>h.clientId===clientId)}
+
+function calcEventFinance(eventId){
+  const parts=getEventParticipations(eventId);
+  const contractIds=[...new Set(parts.map(p=>p.contractId).filter(Boolean))];
+  const partContracts=contractIds.map(id=>db.contracts.find(c=>c.id===id)).filter(Boolean);
+
+  // Avulso = por_cavalo + por_prova vinculados a este evento
+  const avulso=[...new Set([
+    ...db.contracts.filter(c=>c.eventId===eventId&&c.billingModel!=='pacote').map(c=>c.id),
+    ...partContracts.filter(c=>c.billingModel!=='pacote').map(c=>c.id),
+  ])].map(id=>db.contracts.find(c=>c.id===id)).filter(Boolean);
+
+  const avulsoRev=avulso.reduce((s,c)=>s+parseFloat(c.agreedValue||0),0);
+  const avulsoPaid=avulso.reduce((s,c)=>s+parseFloat(c.paidValue||0),0);
+  const pacote=partContracts.filter(c=>c.billingModel==='pacote');
+
+  const expenses=getEventExpenses(eventId);
+  const team=getEventTeam(eventId);
+  const expCost=expenses.reduce((s,e)=>s+parseFloat(e.value||0),0);
+  const teamCost=team.reduce((s,t)=>s+parseFloat(t.dailyRate||0)*parseFloat(t.days||1),0);
+  const totalCost=expCost+teamCost;
+  const profit=avulsoPaid-totalCost;
+  const margin=avulsoPaid>0?Math.round((profit/avulsoPaid)*100):0;
+  const avgTicket=avulso.length>0?avulsoRev/avulso.length:0;
+  const breakeven=avgTicket>0?Math.ceil(totalCost/avgTicket):0;
+
+  const byCavalo=avulso.filter(c=>c.billingModel==='por_cavalo');
+  const byProva=avulso.filter(c=>c.billingModel==='por_prova');
+
+  return{avulsoRev,avulsoPaid,avulsoPending:avulsoRev-avulsoPaid,
+    expCost,teamCost,totalCost,profit,margin,breakeven,
+    avulsoCount:avulso.length,pacoteCount:pacote.length,partsCount:parts.length,
+    porCavaloCount:byCavalo.length,porCavaloRev:byCavalo.reduce((s,c)=>s+parseFloat(c.agreedValue||0),0),
+    porProvaCount:byProva.length,porProvaRev:byProva.reduce((s,c)=>s+parseFloat(c.agreedValue||0),0),
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+const S={
+  page:'agora',sub:'',eventId:db.events[0]?.id||null,
+  modal:null,editId:null,
+  filterDay:'all',filterFilm:'all',search:'',
+  toast:null,toastTimer:null,
+  _prefillClient:null,_prefillDespCat:null,
+};
+function setPage(p,sub=''){S.page=p;S.sub=sub;S.search='';render()}
+function closeModal(){S.modal=null;S.editId=null;render()}
+function showToast(msg,type='success'){
+  S.toast={msg,type};clearTimeout(S.toastTimer);
+  S.toastTimer=setTimeout(()=>{S.toast=null;renderToast()},2800);renderToast();
+}
+function renderToast(){
+  let t=document.getElementById('toast-container');
+  if(!t){t=document.createElement('div');t.id='toast-container';document.body.appendChild(t)}
+  t.innerHTML=S.toast?`<div class="toast ${S.toast.type}">${esc(S.toast.msg)}</div>`:'';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ICONS
+// ═══════════════════════════════════════════════════════════════
+const IC={
+  list:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>`,
+  home:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
+  calendar:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
+  users:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+  dollar:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
+  trending:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>`,
+  settings:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
+  plus:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
+  x:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+  search:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`,
+  edit:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
+  trash:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>`,
+  film:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>`,
+  check:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+  alert:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+  menu:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>`,
+};
+
+// ═══════════════════════════════════════════════════════════════
+// RENDER SYSTEM
+// ═══════════════════════════════════════════════════════════════
+function render(){
+  const root=document.getElementById('root');
+  root.innerHTML=`
+    ${renderHeader()}
+    <div class="layout">
+      ${renderSidebar()}
+      <main class="content" id="content">${renderPage()}</main>
+    </div>
+    ${renderBottomNav()}
+    ${S.modal?`<div class="modal-overlay" id="overlay">${renderModal()}</div>`:''}
+  `;
+  bindAfter();
+}
+
+function renderHeader(){
+  const events=db.events;
+  return`<div class="hdr">
+    <div class="hdr-logo">ON<span> Digital</span></div>
+    <div class="hdr-evt">
+      <select id="evt-select">
+        <option value="">— Selecionar evento —</option>
+        ${events.map(e=>`<option value="${e.id}" ${e.id===S.eventId?'selected':''}>${esc(e.name)}</option>`).join('')}
+      </select>
+    </div>
+    <button class="hdr-btn" data-action="open-modal" data-modal="novo-evento" title="Novo Evento">${IC.plus}</button>
+    <div class="clock" id="clock">${nowTime()}</div>
+  </div>`;
+}
+
+function renderSidebar(){
+  const nav=[
+    {id:'agora',   icon:'home',     label:'Operacional'},
+    {id:'ordem',   icon:'list',     label:'Ordem do Dia'},
+    {id:'agenda',  icon:'calendar', label:'Agenda'},
+    {id:'clientes',icon:'users',    label:'Clientes'},
+    {id:'financas',icon:'dollar',   label:'Finanças'},
+    {id:'despesas',icon:'trending', label:'Despesas'},
+    {id:'config',  icon:'settings', label:'Configurações'},
+  ];
+  return`<nav class="sidebar"><div class="sb-nav">
+    ${nav.map(n=>`<div class="sb-item${S.page===n.id?' active':''}" data-action="nav" data-page="${n.id}">${IC[n.icon]}<span>${n.label}</span></div>`).join('')}
+  </div></nav>`;
+}
+
+function renderBottomNav(){
+  const nav=[
+    {id:'agora',   icon:'home',     label:'Agora'},
+    {id:'ordem',   icon:'list',     label:'Ordem'},
+    {id:'agenda',  icon:'calendar', label:'Agenda'},
+    {id:'clientes',icon:'users',    label:'Clientes'},
+    {id:'financas',icon:'dollar',   label:'Finanças'},
+  ];
+  return`<nav class="bottom-nav">
+    ${nav.map(n=>`<button class="bn-item${S.page===n.id?' active':''}" data-action="nav" data-page="${n.id}">${IC[n.icon]}<span>${n.label}</span></button>`).join('')}
+  </nav>`;
+}
+
+function renderPage(){
+  if(!S.eventId&&S.page!=='config')return`<div class="empty" style="margin-top:60px">${IC.calendar}<p>Nenhum evento selecionado.<br>Crie ou selecione um evento.</p><button class="btn btn-primary" data-action="open-modal" data-modal="novo-evento">${IC.plus} Novo Evento</button></div>`;
+  switch(S.page){
+    case 'agora':    return pageAgora();
+    case 'ordem':    return pageOrdem();
+    case 'agenda':   return pageAgenda();
+    case 'clientes': return pageClientes();
+    case 'financas': return pageFinancas();
+    case 'despesas': return pageDespesas();
+    case 'config':   return pageConfig();
+    default:         return pageAgora();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PAGE: AGORA
+// ═══════════════════════════════════════════════════════════════
+function pageAgora(){
+  const parts=getEventParticipations(S.eventId);
+  const today=todayISO();
+  const now=toMins(nowTime());
+  const sorted=parts.filter(p=>p.proofTime).sort((a,b)=>toMins(a.proofTime)-toMins(b.proofTime));
+  const todayParts=sorted.filter(p=>!p.day||p.day===today);
+
+  const pendingRecog=todayParts.filter(p=>{
+    const rt=toMins(p.recognitionTime);
+    return rt>=now&&(p.filmStatus==='aguardando'||p.filmStatus==='reconhecimento');
+  });
+  const nextRecog=pendingRecog[0]||null;
+  const pendingProva=todayParts.filter(p=>toMins(p.proofTime)>=now&&p.filmStatus!=='entregue'&&p.filmStatus!=='nao_filmado');
+  const nextProva=pendingProva[0]||null;
+
+  const alerts=[];
+  const overdue=todayParts.filter(p=>toMins(p.proofTime)<now&&p.filmStatus==='aguardando');
+  if(overdue.length)alerts.push(`${overdue.length} participação(ões) aguardando com horário já passado`);
+  const contracts=parts.map(p=>getContract(p.contractId)).filter(Boolean);
+  const pendingPay=contracts.filter(c=>c.payStatus==='pendente');
+  if(pendingPay.length)alerts.push(`${pendingPay.length} pagamento(s) pendente(s)`);
+
+  const nextCard=(part,type)=>{
+    if(!part)return`<div class="agora-empty"><small>Nenhum${type==='recog'?' reconhecimento':' prova'} próximo</small></div>`;
+    const cl=getClient(part.clientId);
+    const horse=getHorse(part.horseId);
+    const time=type==='recog'?part.recognitionTime:part.proofTime;
+    return`<div>
+      <div class="agora-eyebrow ${type}">${type==='recog'?'🔵 Próximo Reconhecimento':'🟡 Próxima Prova'}</div>
+      <div class="agora-client">${esc(cl.name)}</div>
+      <div class="agora-horse">🐎 ${esc(horse.name)} · Nº ${esc(part.inscriptionNumber||'—')}</div>
+      <div class="agora-time">${esc(time||'—')}</div>
+      <div class="agora-meta">${esc(part.proofName||'')}${part.category?' · '+esc(part.category):''}</div>
+      ${stageBtns(part)}
+      <div style="margin-top:8px;display:flex;gap:8px">
+        <button class="btn btn-ghost btn-sm" data-action="quick-film" data-id="${part.id}">${IC.film} Status</button>
+        <button class="btn btn-ghost btn-sm" data-action="open-part" data-id="${part.id}">${IC.edit} Editar</button>
+      </div>
+    </div>`;
+  };
+
+  const timeline=todayParts.length?todayParts.map(p=>{
+    const cl=getClient(p.clientId);
+    const horse=getHorse(p.horseId);
+    const fs=filmLabel(p.filmStatus||'aguardando');
+    const contract=getContract(p.contractId);
+    const ps=payLabel(contract?.payStatus||'pendente');
+    const isPast=toMins(p.proofTime)<now;
+    return`<div class="entry-row" data-action="open-part" data-id="${p.id}" style="${isPast?'opacity:.55':''}border-left:3px solid ${fs.color};padding-left:10px">
+      <div class="entry-time">
+        <div class="entry-time-main">${esc(p.proofTime||'—')}</div>
+        <div class="entry-time-recog">${esc(p.recognitionTime||'')}</div>
+      </div>
+      <div class="entry-divider"></div>
+      <div class="entry-info">
+        <div class="entry-client">${esc(cl.name)}</div>
+        <div class="entry-horse">🐎 ${esc(horse.name)}</div>
+        <div class="entry-badges">
+          <span class="badge badge-${p.filmStatus||'aguardando'}">${fs.label}</span>
+          <span class="badge badge-${contract?.payStatus||'pendente'}">${ps.label}</span>
+        </div>
+        ${stageBtns(p)}
+      </div>
+      <div class="entry-num">${esc(p.inscriptionNumber||'')}</div>
+    </div>`;
+  }).join(''):`<div class="empty"><p>Nenhuma participação para hoje.</p></div>`;
+
+  return`
+    ${alerts.length?`<div style="background:var(--amber-bg);border:1px solid var(--amber);border-radius:var(--r);padding:10px 12px;margin-bottom:12px;display:flex;gap:8px;align-items:flex-start">
+      <span style="color:var(--amber);flex-shrink:0;margin-top:1px">${IC.alert}</span>
+      <div style="font-size:12px;color:var(--amber)">${alerts.map(a=>`<div>${esc(a)}</div>`).join('')}</div>
+    </div>`:''}
+    <div class="card-grid" style="grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <div class="agora-next recog">${nextCard(nextRecog,'recog')}</div>
+      <div class="agora-next prova">${nextCard(nextProva,'prova')}</div>
+    </div>
+    <div class="sec-hdr">
+      <div><div class="sec-title">Hoje</div><div class="sec-sub">${fmtDate(today)} · ${todayParts.length} participação(ões)</div></div>
+      <button class="btn btn-primary btn-sm" data-action="open-modal" data-modal="nova-participacao">${IC.plus} Nova</button>
+    </div>
+    <div class="stack">${timeline}</div>
+  `;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PAGE: ORDEM DO DIA
+// ═══════════════════════════════════════════════════════════════
+function pageOrdem(){
+  const parts=getEventParticipations(S.eventId);
+  const days=[...new Set(parts.map(p=>p.day).filter(Boolean))].sort();
+  const today=todayISO();
+  const selDay=S.filterDay==='all'?today:S.filterDay;
+  let filtered=parts.filter(p=>!p.day||p.day===selDay);
+  filtered.sort((a,b)=>(parseInt(a.inscriptionNumber)||99999)-(parseInt(b.inscriptionNumber)||99999));
+
+  const cards=filtered.map(p=>{
+    const cl=getClient(p.clientId);
+    const horse=getHorse(p.horseId);
+    const fs=filmLabel(p.filmStatus||'aguardando');
+    const contract=getContract(p.contractId);
+    const ps=payLabel(contract?.payStatus||'pendente');
+    return`<div class="ordem-card" style="border-left:3px solid ${fs.color}">
+      <div class="ordem-num-box" data-action="edit-num" data-id="${p.id}" title="Clique para editar número">${esc(p.inscriptionNumber||'—')}</div>
+      <div class="ordem-info">
+        <div class="ordem-client">${esc(cl.name)}</div>
+        <div class="ordem-horse">🐎 ${esc(horse.name)}${p.proofName?' · '+esc(p.proofName):''}</div>
+        <div class="ordem-meta">
+          ${contract?billingBadge(contract.billingModel,true):''}
+          ${p.recognitionTime?`<span class="ordem-time"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${esc(p.recognitionTime)}</span>`:''}
+          ${p.proofTime?`<span class="ordem-time" style="color:var(--gold)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${esc(p.proofTime)}</span>`:''}
+        </div>
+        <div class="entry-badges" style="margin-top:5px">
+          <span class="badge badge-${p.filmStatus||'aguardando'}" style="font-size:10px">${fs.label}</span>
+          <span class="badge badge-${contract?.payStatus||'pendente'}" style="font-size:10px">${ps.label}</span>
+        </div>
+        ${stageBtns(p)}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0">
+        <button class="btn btn-ghost btn-sm" data-action="quick-film" data-id="${p.id}">${IC.film}</button>
+        <button class="btn btn-ghost btn-sm" data-action="open-part" data-id="${p.id}">${IC.edit}</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  const dayTabs=`<div class="filter-tabs">
+    ${days.map(d=>`<div class="ftab${selDay===d?' active':''}" data-action="filter-day" data-val="${d}">${fmtDate(d)}</div>`).join('')}
+    ${!days.includes(today)?`<div class="ftab${selDay===today?' active':''}" data-action="filter-day" data-val="${today}">Hoje</div>`:''}
+  </div>`;
+
+  return`
+    <div class="sec-hdr">
+      <div><div class="sec-title">Ordem do Dia</div><div class="sec-sub">${fmtDate(selDay)} · ${filtered.length} participação(ões)</div></div>
+      <button class="btn btn-primary btn-sm" data-action="open-modal" data-modal="nova-participacao">${IC.plus} Nova</button>
+    </div>
+    ${days.length>1?dayTabs:''}
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">${IC.edit} Toque no número para editar</div>
+    <div class="stack">${cards||`<div class="empty">${IC.list}<p>Nenhuma participação para este dia.</p></div>`}</div>
+  `;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PAGE: AGENDA
+// ═══════════════════════════════════════════════════════════════
+function pageAgenda(){
+  const parts=getEventParticipations(S.eventId);
+  const days=[...new Set(parts.map(p=>p.day).filter(Boolean))].sort();
+  let filtered=parts;
+  if(S.filterDay!=='all')filtered=filtered.filter(p=>p.day===S.filterDay);
+  if(S.filterFilm!=='all')filtered=filtered.filter(p=>(p.filmStatus||'aguardando')===S.filterFilm);
+  if(S.search){
+    const q=S.search.toLowerCase();
+    filtered=filtered.filter(p=>{
+      const cl=getClient(p.clientId);
+      const horse=getHorse(p.horseId);
+      return cl.name.toLowerCase().includes(q)||horse.name.toLowerCase().includes(q)||
+        (p.inscriptionNumber||'').toLowerCase().includes(q)||(p.proofName||'').toLowerCase().includes(q);
+    });
+  }
+  filtered.sort((a,b)=>{const dd=(a.day||'').localeCompare(b.day||'');if(dd!==0)return dd;return toMins(a.proofTime||'99:99')-toMins(b.proofTime||'99:99')});
+
+  const byDay={};
+  filtered.forEach(p=>{const d=p.day||'Sem data';if(!byDay[d])byDay[d]=[];byDay[d].push(p)});
+
+  const groups=Object.entries(byDay).map(([day,ps])=>`
+    <div style="margin-bottom:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;padding:0 2px">
+        ${day==='Sem data'?'Sem data':fmtDate(day)} <span style="font-weight:400">(${ps.length})</span>
+      </div>
+      <div class="stack">
+        ${ps.map(p=>{
+          const cl=getClient(p.clientId);
+          const horse=getHorse(p.horseId);
+          const fs=filmLabel(p.filmStatus||'aguardando');
+          const contract=getContract(p.contractId);
+          const ps2=payLabel(contract?.payStatus||'pendente');
+          return`<div class="entry-row" data-action="open-part" data-id="${p.id}" style="border-left:3px solid ${fs.color};padding-left:10px">
+            <div class="entry-time">
+              <div class="entry-time-main">${esc(p.proofTime||'—')}</div>
+              <div class="entry-time-recog">${esc(p.recognitionTime||'')}</div>
+            </div>
+            <div class="entry-divider"></div>
+            <div class="entry-info">
+              <div class="entry-client">${esc(cl.name)}</div>
+              <div class="entry-horse">🐎 ${esc(horse.name)} · Nº ${esc(p.inscriptionNumber||'—')}</div>
+              <div class="entry-meta">${esc(p.proofName||'')}${p.category?' · '+esc(p.category):''}</div>
+              <div class="entry-badges">
+                <span class="badge badge-${p.filmStatus||'aguardando'}">${fs.label}</span>
+                <span class="badge badge-${contract?.payStatus||'pendente'}">${ps2.label}</span>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex-shrink:0">
+              <span style="font-size:13px;font-weight:700;color:var(--gold);font-variant-numeric:tabular-nums">${cur(contract?.agreedValue)}</span>
+              <button class="btn btn-ghost btn-sm" data-action="quick-film" data-id="${p.id}" onclick="event.stopPropagation()">${IC.film}</button>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  `).join('');
+
+  return`
+    <div class="sec-hdr">
+      <div><div class="sec-title">Agenda</div><div class="sec-sub">${filtered.length} de ${parts.length} participação(ões)</div></div>
+      <button class="btn btn-primary btn-sm" data-action="open-modal" data-modal="nova-participacao">${IC.plus} Nova</button>
+    </div>
+    <div class="search-wrap" style="margin-bottom:10px">
+      <span class="search-icon">${IC.search}</span>
+      <input type="search" placeholder="Buscar cliente, cavalo, inscrição..." id="search-agenda" value="${esc(S.search)}" data-change="search" style="padding-left:32px;width:100%">
+    </div>
+    <div class="filter-tabs">
+      <div class="ftab${S.filterDay==='all'?' active':''}" data-action="filter-day" data-val="all">Todos</div>
+      ${days.map(d=>`<div class="ftab${S.filterDay===d?' active':''}" data-action="filter-day" data-val="${d}">${fmtDate(d)}</div>`).join('')}
+    </div>
+    <div class="filter-tabs">
+      <div class="ftab${S.filterFilm==='all'?' active':''}" data-action="filter-film" data-val="all">Todos status</div>
+      ${FILM.map(f=>`<div class="ftab${S.filterFilm===f.id?' active':''}" data-action="filter-film" data-val="${f.id}">${f.label}</div>`).join('')}
+    </div>
+    ${groups||'<div class="empty">'+IC.calendar+'<p>Nenhuma participação encontrada.</p></div>'}
+  `;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PAGE: CLIENTES
+// ═══════════════════════════════════════════════════════════════
+function pageClientes(){
+  const allClients=db.clients;
+  const q=S.search.toLowerCase();
+  const filtered=allClients.filter(c=>!q||c.name.toLowerCase().includes(q)||(c.phone||'').includes(q)||(c.instagram||'').toLowerCase().includes(q));
+
+  const items=filtered.map(c=>{
+    const horses=getClientHorses(c.id);
+    const eventParts=S.eventId?db.participations.filter(p=>p.eventId===S.eventId&&p.clientId===c.id):[];
+    const eventContracts=S.eventId?db.contracts.filter(ct=>ct.clientId===c.id&&(ct.eventId===S.eventId||ct.billingModel==='pacote')):[];
+    const totalVal=eventContracts.reduce((s,ct)=>s+parseFloat(ct.agreedValue||0),0);
+    const totalPaid=eventContracts.reduce((s,ct)=>s+parseFloat(ct.paidValue||0),0);
+    const pending=totalVal-totalPaid;
+    const hasPacote=eventContracts.some(ct=>ct.billingModel==='pacote');
+    return`<button class="list-item" data-action="open-client" data-id="${c.id}">
+      <div class="client-avatar">${esc(c.name[0])}</div>
+      <div class="list-item-info">
+        <div class="list-item-name" style="display:flex;align-items:center;gap:6px">
+          <span>${esc(c.name)}</span>
+          ${hasPacote?'<span class="badge badge-pacote" style="font-size:10px">Pacote</span>':''}
+        </div>
+        <div class="list-item-sub">${eventParts.length} participação(ões) · ${horses.length} cavalo(s)${c.phone?' · '+esc(c.phone):''}</div>
+      </div>
+      <div class="list-item-right">
+        <span style="font-size:13px;font-weight:700;color:var(--gold);font-variant-numeric:tabular-nums">${cur(totalVal)}</span>
+        ${pending>0?`<span class="badge badge-pendente" style="font-size:10px">-${cur(pending)}</span>`:totalVal>0?'<span class="badge badge-pago" style="font-size:10px">Quitado</span>':''}
+      </div>
+    </button>`;
+  }).join('');
+
+  return`
+    <div class="sec-hdr">
+      <div><div class="sec-title">Clientes</div><div class="sec-sub">${allClients.length} cliente(s) · globais</div></div>
+      <button class="btn btn-primary btn-sm" data-action="open-modal" data-modal="nova-participacao">${IC.plus} Nova Participação</button>
+    </div>
+    <div class="search-wrap" style="margin-bottom:10px">
+      <span class="search-icon">${IC.search}</span>
+      <input type="search" placeholder="Buscar cliente..." id="search-client" value="${esc(S.search)}" data-change="search" style="padding-left:32px;width:100%">
+    </div>
+    <div class="stack">${items||'<div class="empty">'+IC.users+'<p>Nenhum cliente ainda.</p></div>'}</div>
+  `;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PAGE: FINANÇAS
+// ═══════════════════════════════════════════════════════════════
+function pageFinancas(){
+  const F=calcEventFinance(S.eventId);
+  const parts=getEventParticipations(S.eventId);
+
+  const byMethod={};PAY_METHODS.forEach(m=>byMethod[m]=0);
+  const avulsoContracts=db.contracts.filter(c=>c.eventId===S.eventId&&c.billingModel!=='pacote');
+  avulsoContracts.forEach(c=>{if(parseFloat(c.paidValue||0)>0)byMethod[c.paymentMethod||'Outros']=(byMethod[c.paymentMethod||'Outros']||0)+parseFloat(c.paidValue||0)});
+
+  const byFilm={};FILM.forEach(f=>byFilm[f.id]=0);
+  parts.forEach(p=>byFilm[p.filmStatus||'aguardando']++);
+
+  const methodBars=PAY_METHODS.filter(m=>byMethod[m]>0).map(m=>{
+    const pct=F.avulsoPaid>0?Math.round((byMethod[m]/F.avulsoPaid)*100):0;
+    return`<div class="fin-bar-row">
+      <div class="fin-bar-label">${esc(m)}</div>
+      <div class="fin-bar-track"><div class="fin-bar-fill" style="width:${pct}%"></div></div>
+      <div class="fin-bar-val">${cur(byMethod[m])}</div>
+    </div>`;
+  }).join('');
+
+  return`
+    <div class="sec-hdr"><div class="sec-title">Finanças</div></div>
+    <div class="card-grid" style="grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div class="kpi gold"><div class="kpi-label">Faturamento Avulso</div><div class="kpi-value">${cur(F.avulsoRev)}</div><div class="kpi-sub">${F.avulsoCount} contrato(s)</div></div>
+      <div class="kpi green"><div class="kpi-label">Recebido</div><div class="kpi-value">${cur(F.avulsoPaid)}</div><div class="kpi-sub">${F.avulsoRev>0?Math.round((F.avulsoPaid/F.avulsoRev)*100):0}% do total</div></div>
+      <div class="kpi red"><div class="kpi-label">Pendente</div><div class="kpi-value">${cur(F.avulsoPending)}</div></div>
+      <div class="kpi amber"><div class="kpi-label">Custos</div><div class="kpi-value">${cur(F.totalCost)}</div><div class="kpi-sub">Desp. + Equipe</div></div>
+      <div class="kpi${F.profit>=0?' green':' red'}" style="grid-column:span 2"><div class="kpi-label">Lucro Líquido</div><div class="kpi-value">${cur(F.profit)}</div><div class="kpi-sub">Margem ${F.margin}% · Ponto de equilíbrio: ${F.breakeven} cliente(s)</div></div>
+    </div>
+    <div class="card" style="margin-bottom:10px">
+      <div class="card-title">Breakdown por modelo</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">Por Cavalo (${F.porCavaloCount})</span><span style="font-weight:700">${cur(F.porCavaloRev)}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">Por Prova (${F.porProvaCount})</span><span style="font-weight:700">${cur(F.porProvaRev)}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0"><span style="color:var(--muted)">Pacotes utilizados (${F.pacoteCount})</span><span style="font-weight:700;color:var(--purple)">recorrente</span></div>
+      </div>
+    </div>
+    ${methodBars?`<div class="card" style="margin-bottom:10px"><div class="card-title">Recebido por forma de pagamento</div><div class="fin-bar-wrap">${methodBars}</div></div>`:''}
+    <div class="card" style="margin-bottom:10px">
+      <div class="card-title">Status de filmagem</div>
+      ${FILM.map(f=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)"><span class="badge badge-${f.id}">${f.label}</span><span style="font-weight:700">${byFilm[f.id]||0}</span></div>`).join('')}
+    </div>
+    <div class="card">
+      <div class="card-title">Custos detalhados</div>
+      <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">Despesas operacionais</span><span style="font-weight:700">${cur(F.expCost)}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:7px 0"><span style="color:var(--muted)">Custos de equipe</span><span style="font-weight:700">${cur(F.teamCost)}</span></div>
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PAGE: DESPESAS
+// ═══════════════════════════════════════════════════════════════
+function pageDespesas(){
+  const expenses=getEventExpenses(S.eventId).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const total=expenses.reduce((s,e)=>s+parseFloat(e.value||0),0);
+  const rows=expenses.map(e=>`<tr>
+    <td>${fmtDate(e.date)}</td>
+    <td><span style="font-weight:600">${esc(e.description||'—')}</span><br><span style="font-size:11px;color:var(--muted)">${esc(e.category||'')}</span></td>
+    <td><span class="badge" style="color:var(--muted);background:var(--surf2)">${esc(e.method||'—')}</span></td>
+    <td style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums">${cur(e.value)}</td>
+    <td style="text-align:right"><span class="del-btn" data-action="del-expense" data-id="${e.id}">${IC.trash}</span></td>
+  </tr>`).join('');
+
+  return`
+    <div class="sec-hdr"><div><div class="sec-title">Despesas</div><div class="sec-sub">Total: ${cur(total)}</div></div></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+      <button class="btn btn-ghost" style="justify-content:center;padding:12px 8px" data-action="quick-desp" data-cat="Hospedagem">🏨 Hospedagem</button>
+      <button class="btn btn-ghost" style="justify-content:center;padding:12px 8px" data-action="quick-desp" data-cat="Combustível">⛽ Gasolina</button>
+      <button class="btn btn-ghost" style="justify-content:center;padding:12px 8px" data-action="quick-desp" data-cat="Alimentação">🍽 Alimentação</button>
+      <button class="btn btn-ghost" style="justify-content:center;padding:12px 8px" data-action="open-modal" data-modal="nova-despesa">${IC.plus} Outras</button>
+    </div>
+    ${expenses.length?`<div class="tbl-wrap card" style="margin-bottom:14px"><table>
+      <thead><tr><th>Data</th><th>Descrição</th><th>Forma</th><th style="text-align:right">Valor</th><th></th></tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr><td colspan="3" style="font-weight:700;padding:10px 12px">Total</td><td style="text-align:right;font-weight:700;color:var(--red)">${cur(total)}</td><td></td></tr></tfoot>
+    </table></div>`:`<div class="empty">${IC.dollar}<p>Nenhuma despesa registrada.</p></div>`}
+  `;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PAGE: CONFIG
+// ═══════════════════════════════════════════════════════════════
+function pageConfig(){
+  const sub=S.sub||'eventos';
+  const tabs=['eventos','produtos','equipe','equipamentos'];
+  let content='';
+  if(sub==='eventos')content=configEventos();
+  else if(sub==='produtos')content=configProdutos();
+  else if(sub==='equipe')content=configEquipe();
+  else if(sub==='equipamentos')content=configEquip();
+  return`
+    <div class="sec-hdr"><div class="sec-title">Configurações</div></div>
+    <div class="page-tabs">
+      ${tabs.map(t=>`<div class="page-tab${sub===t?' active':''}" data-action="config-tab" data-val="${t}">${t.charAt(0).toUpperCase()+t.slice(1)}</div>`).join('')}
+    </div>
+    ${content}
+  `;
+}
+
+function configEventos(){
+  const items=db.events.map(e=>`<div class="list-item" style="cursor:default">
+    <div class="list-item-info">
+      <div class="list-item-name">${esc(e.name)}</div>
+      <div class="list-item-sub">${esc(e.location||'—')} · ${fmtDate(e.startDate)}${e.endDate&&e.endDate!==e.startDate?' → '+fmtDate(e.endDate):''}</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost btn-sm btn-icon" data-action="edit-event" data-id="${e.id}">${IC.edit}</button>
+      <button class="btn btn-danger btn-sm btn-icon" data-action="del-event" data-id="${e.id}">${IC.trash}</button>
+    </div>
+  </div>`).join('');
+  return`<div class="stack">${items||'<div class="empty">'+IC.calendar+'<p>Nenhum evento.</p></div>'}
+    <button class="btn btn-primary" data-action="open-modal" data-modal="novo-evento">${IC.plus} Novo Evento</button>
+  </div>`;
+}
+
+function configProdutos(){
+  const rows=db.products.map(p=>`<tr>
+    <td style="font-weight:600">${esc(p.name)}</td>
+    <td style="font-variant-numeric:tabular-nums;color:var(--gold)">${cur(p.price)}</td>
+    <td style="font-variant-numeric:tabular-nums;color:var(--muted)">${cur(p.cost)}</td>
+    <td>${p.price>0?Math.round(((p.price-p.cost)/p.price)*100):0}%</td>
+    <td style="display:flex;gap:6px">
+      <span class="del-btn" style="color:var(--muted)" data-action="edit-product" data-id="${p.id}">${IC.edit}</span>
+      <span class="del-btn" data-action="del-product" data-id="${p.id}">${IC.trash}</span>
+    </td>
+  </tr>`).join('');
+  return`<div>
+    <div class="tbl-wrap card" style="margin-bottom:10px"><table>
+      <thead><tr><th>Produto/Serviço</th><th>Preço</th><th>Custo</th><th>Margem</th><th></th></tr></thead>
+      <tbody>${rows||'<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">Nenhum produto</td></tr>'}</tbody>
+    </table></div>
+    <button class="btn btn-primary btn-sm" data-action="open-modal" data-modal="novo-produto">${IC.plus} Novo Produto</button>
+  </div>`;
+}
+
+function configEquipe(){
+  if(!S.eventId)return'<div class="empty"><p>Selecione um evento primeiro.</p></div>';
+  const team=getEventTeam(S.eventId);
+  const total=team.reduce((s,t)=>s+parseFloat(t.dailyRate||0)*parseFloat(t.days||1),0);
+  const rows=team.map(t=>`<tr>
+    <td style="font-weight:600">${esc(t.name)}</td>
+    <td style="color:var(--muted)">${esc(t.role||'—')}</td>
+    <td>${t.days||1}d</td>
+    <td style="color:var(--gold)">${cur(parseFloat(t.dailyRate||0)*parseFloat(t.days||1))}</td>
+    <td><span class="del-btn" data-action="del-team" data-id="${t.id}">${IC.trash}</span></td>
+  </tr>`).join('');
+  return`<div>
+    <div class="tbl-wrap card" style="margin-bottom:10px"><table>
+      <thead><tr><th>Nome</th><th>Função</th><th>Dias</th><th>Total</th><th></th></tr></thead>
+      <tbody>${rows||'<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">Nenhum membro</td></tr>'}</tbody>
+      <tfoot><tr><td colspan="3" style="font-weight:700;padding:10px 12px">Total equipe</td><td style="font-weight:700;color:var(--amber)">${cur(total)}</td><td></td></tr></tfoot>
+    </table></div>
+    <button class="btn btn-primary btn-sm" data-action="open-modal" data-modal="novo-membro">${IC.plus} Membro da Equipe</button>
+  </div>`;
+}
+
+function configEquip(){
+  if(!S.eventId)return'<div class="empty"><p>Selecione um evento primeiro.</p></div>';
+  const equip=db.equipment.filter(e=>e.eventId===S.eventId);
+  const rows=equip.map(e=>`<tr>
+    <td style="font-weight:600">${esc(e.name)}</td>
+    <td style="color:var(--muted)">${esc(e.responsible||'—')}</td>
+    <td><span class="badge badge-${e.status==='ok'?'filmado':e.status==='problema'?'pendente':'aguardando'}">${esc(e.status||'ok')}</span></td>
+    <td>${esc(e.notes||'')}</td>
+    <td><span class="del-btn" data-action="del-equip" data-id="${e.id}">${IC.trash}</span></td>
+  </tr>`).join('');
+  return`<div>
+    <div class="tbl-wrap card" style="margin-bottom:10px"><table>
+      <thead><tr><th>Equipamento</th><th>Responsável</th><th>Status</th><th>Obs</th><th></th></tr></thead>
+      <tbody>${rows||'<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">Nenhum equipamento</td></tr>'}</tbody>
+    </table></div>
+    <button class="btn btn-primary btn-sm" data-action="open-modal" data-modal="novo-equip">${IC.plus} Equipamento</button>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MODALS
+// ═══════════════════════════════════════════════════════════════
+function renderModal(){
+  switch(S.modal){
+    case 'novo-evento':        return modalEvento();
+    case 'nova-participacao':  return modalParticipacao();
+    case 'editar-participacao':return modalParticipacao(S.editId);
+    case 'status-filmagem':    return modalFilmStatus(S.editId);
+    case 'nova-despesa':       return modalDespesa();
+    case 'novo-produto':       return modalProduto();
+    case 'editar-produto':     return modalProduto(S.editId);
+    case 'novo-membro':        return modalMembro();
+    case 'novo-equip':         return modalEquip();
+    case 'ver-cliente':        return modalClient(S.editId);
+    default: return'';
+  }
+}
+
+function modalEvento(){
+  const e=S.editId?getEvent(S.editId):null;
+  return`<div class="modal" id="modal">
+    <div class="modal-hdr"><h3>${e?'Editar':'Novo'} Evento</h3><button class="hdr-btn" data-action="close-modal">${IC.x}</button></div>
+    <div class="modal-body">
+      <form class="form-grid" data-action="save-evento" id="form-evento">
+        ${e?`<input type="hidden" name="id" value="${e.id}">`:''}
+        <div class="field"><label>Nome do Evento *</label><input name="name" required value="${esc(e?.name||'')}" placeholder="Ex: Campeonato CHSA"></div>
+        <div class="form-row">
+          <div class="field"><label>Data início *</label><input type="date" name="startDate" required value="${esc(e?.startDate||todayISO())}"></div>
+          <div class="field"><label>Data fim</label><input type="date" name="endDate" value="${esc(e?.endDate||'')}"></div>
+        </div>
+        <div class="field"><label>Local</label><input name="location" value="${esc(e?.location||'')}" placeholder="Cidade, clube..."></div>
+        <div class="field"><label>Organizador</label><input name="organizer" value="${esc(e?.organizer||'')}"></div>
+        <div class="field"><label>Observações</label><textarea name="notes">${esc(e?.notes||'')}</textarea></div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" data-action="close-modal">Cancelar</button>
+      <button class="btn btn-primary" onclick="document.getElementById('form-evento').requestSubmit()">${IC.check} Salvar</button>
+    </div>
+  </div>`;
+}
+
+function modalParticipacao(editId){
+  const part=editId?db.participations.find(p=>p.id===editId):null;
+  const contract=part?getContract(part.contractId):null;
+  const prefillClientId=part?.clientId||S._prefillClient||'';
+  const selClient=prefillClientId?db.clients.find(c=>c.id===prefillClientId):null;
+  const clientHorses=selClient?getClientHorses(selClient.id):[];
+  const bm=contract?.billingModel||'por_cavalo';
+  const isPacote=bm==='pacote';
+
+  return`<div class="modal" id="modal">
+    <div class="modal-hdr"><h3>${part?'Editar Participação':'Nova Participação'}</h3><button class="hdr-btn" data-action="close-modal">${IC.x}</button></div>
+    <div class="modal-body">
+      <form class="form-grid" data-action="save-participacao" id="form-part">
+        ${part?`<input type="hidden" name="id" value="${part.id}">`:''}
+        ${contract?`<input type="hidden" name="contractId" value="${contract.id}">`:''}
+
+        <div class="form-section">Cliente</div>
+        <div class="field"><label>Cliente *</label>
+          <select name="clientId" required id="sel-client">
+            <option value="">— Selecione —</option>
+            ${db.clients.map(c=>`<option value="${c.id}" ${c.id===prefillClientId?'selected':''}>${esc(c.name)}</option>`).join('')}
+            <option value="__new__">+ Novo cliente...</option>
+          </select>
+        </div>
+        <div id="new-client-fields" style="display:none">
+          <div class="form-grid">
+            <div class="field"><label>Nome *</label><input name="newClientName" placeholder="Nome completo"></div>
+            <div class="form-row">
+              <div class="field"><label>Telefone</label><input name="newClientPhone" placeholder="(00) 00000-0000"></div>
+              <div class="field"><label>Instagram</label><input name="newClientInstagram" placeholder="@usuario"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">Cavalo</div>
+        <div class="field"><label>Cavalo *</label>
+          <select name="horseId" required id="sel-horse">
+            <option value="">— Selecione —</option>
+            ${clientHorses.map(h=>`<option value="${h.id}" ${h.id===part?.horseId?'selected':''}>${esc(h.name)}</option>`).join('')}
+            ${selClient?'<option value="__new_horse__">+ Novo cavalo...</option>':''}
+          </select>
+        </div>
+        <div id="new-horse-fields" style="display:none">
+          <div class="field"><label>Nome do Cavalo *</label><input name="newHorseName" placeholder="Nome do cavalo"></div>
+        </div>
+
+        <div class="form-section">Contrato</div>
+        <div class="field"><label>Modelo de Cobrança</label>
+          <select name="billingModel" id="sel-billing">
+            ${BILLING_MODELS.map(b=>`<option value="${b.id}" ${b.id===bm?'selected':''}>${b.label} — ${b.desc}</option>`).join('')}
+          </select>
+        </div>
+        <div id="pacote-fields" style="${isPacote?'':'display:none'}">
+          <div class="field"><label>Tipo de Pacote</label>
+            <select name="packageType">
+              ${PACKAGE_TYPES.map(pt=>`<option value="${pt.id}" ${pt.id===(contract?.packageType||'mensal')?'selected':''}>${pt.label}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div id="value-fields" style="${isPacote?'display:none':''}">
+          <div class="form-row">
+            <div class="field"><label>Valor Contratado (R$)</label>
+              <input type="number" name="agreedValue" step="0.01" min="0" value="${esc(contract?.agreedValue||'')}" placeholder="0,00">
+            </div>
+            <div class="field"><label>Valor Pago (R$)</label>
+              <input type="number" name="paidValue" step="0.01" min="0" value="${esc(contract?.paidValue||'')}" placeholder="0,00">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="field"><label>Forma de Pagamento</label>
+              <select name="paymentMethod">${PAY_METHODS.map(m=>`<option ${m===(contract?.paymentMethod||'Pix')?'selected':''}>${m}</option>`).join('')}</select>
+            </div>
+            <div class="field"><label>Status Pagamento</label>
+              <select name="payStatus">${PAY_STATUS.map(p=>`<option value="${p.id}" ${p.id===(contract?.payStatus||'pendente')?'selected':''}>${p.label}</option>`).join('')}</select>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">Prova</div>
+        <div class="form-row">
+          <div class="field"><label>Data</label><input type="date" name="day" value="${esc(part?.day||todayISO())}" id="inp-day"></div>
+          <div class="field"><label>Horário Prova *</label><input type="time" name="proofTime" required value="${esc(part?.proofTime||'')}" id="inp-proof-time"></div>
+        </div>
+        <div class="form-row">
+          <div class="field"><label>Reconhecimento</label>
+            <input type="time" name="recognitionTime" value="${esc(part?.recognitionTime||'')}" id="inp-recog" placeholder="Auto">
+            <div class="field-hint">Auto: prova − 30min</div>
+          </div>
+          <div class="field" style="justify-content:flex-end">
+            <label style="display:flex;gap:8px;align-items:center;cursor:pointer;padding-top:20px">
+              <input type="checkbox" name="recognitionOverride" ${part?.recognitionOverride?'checked':''} id="recog-override"> Fixar manual
+            </label>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field"><label>Nome da Prova</label><input name="proofName" value="${esc(part?.proofName||'')}" placeholder="Nome da prova"></div>
+          <div class="field"><label>Nº Inscrição</label><input name="inscriptionNumber" value="${esc(part?.inscriptionNumber||'')}"></div>
+        </div>
+        <div class="field"><label>Categoria</label><input name="category" value="${esc(part?.category||'')}" placeholder="CCE, Salto..."></div>
+
+        <div class="form-section">Filmagem</div>
+        <div class="form-row">
+          <div class="field"><label>Status Filmagem</label>
+            <select name="filmStatus">${FILM.map(f=>`<option value="${f.id}" ${f.id===(part?.filmStatus||'aguardando')?'selected':''}>${f.label}</option>`).join('')}</select>
+          </div>
+          <div class="field"><label>Cinegrafista</label><input name="cameraman" value="${esc(part?.cameraman||'')}"></div>
+        </div>
+        <div class="field"><label>Link do Material</label><input name="materialLink" type="url" value="${esc(part?.materialLink||'')}" placeholder="https://..."></div>
+        <div class="field"><label>Observações</label><textarea name="notes">${esc(part?.filmNotes||'')}</textarea></div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      ${part?`<button class="btn btn-danger btn-sm" data-action="del-part" data-id="${part.id}">${IC.trash}</button>`:''}
+      <button class="btn btn-ghost" data-action="close-modal">Cancelar</button>
+      <button class="btn btn-primary" onclick="document.getElementById('form-part').requestSubmit()">${IC.check} Salvar</button>
+    </div>
+  </div>`;
+}
+
+function modalFilmStatus(partId){
+  const part=db.participations.find(p=>p.id===partId);
+  if(!part)return'';
+  const cl=getClient(part.clientId);
+  const horse=getHorse(part.horseId);
+  return`<div class="modal" id="modal" style="max-width:420px">
+    <div class="modal-hdr">
+      <div><h3>Status de Filmagem</h3><div style="font-size:12px;color:var(--muted);margin-top:2px">${esc(cl.name)} · 🐎 ${esc(horse.name)}</div></div>
+      <button class="hdr-btn" data-action="close-modal">${IC.x}</button>
+    </div>
+    <div class="modal-body">
+      <div class="status-grid">
+        ${FILM.map(f=>`<div class="status-opt${(part.filmStatus||'aguardando')===f.id?' selected':''}"
+          style="${(part.filmStatus||'aguardando')===f.id?`color:${f.color}`:'color:var(--muted)'}"
+          data-action="set-film-status" data-id="${partId}" data-val="${f.id}">
+          <div class="status-dot" style="background:${f.color}"></div>
+          <span class="status-opt-label" style="${(part.filmStatus||'aguardando')===f.id?`color:${f.color}`:''}">${f.label}</span>
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+function modalDespesa(){
+  const prefill=S._prefillDespCat||'';
+  if(S._prefillDespCat)S._prefillDespCat=null;
+  return`<div class="modal" id="modal" style="max-width:420px">
+    <div class="modal-hdr"><h3>Nova Despesa${prefill?' — '+prefill:''}</h3><button class="hdr-btn" data-action="close-modal">${IC.x}</button></div>
+    <div class="modal-body">
+      <form class="form-grid" data-action="save-despesa" id="form-desp">
+        <div class="field"><label>Descrição *</label><input name="description" required placeholder="Descreva a despesa" value="${esc(prefill)}"></div>
+        <div class="form-row">
+          <div class="field"><label>Categoria</label>
+            <select name="category">${EXP_CATS.map(c=>`<option${c===prefill?' selected':''}>${c}</option>`).join('')}</select>
+          </div>
+          <div class="field"><label>Data</label><input type="date" name="date" value="${todayISO()}"></div>
+        </div>
+        <div class="form-row">
+          <div class="field"><label>Valor (R$) *</label><input type="number" name="value" step="0.01" min="0" required placeholder="0,00"></div>
+          <div class="field"><label>Forma</label><select name="method">${PAY_METHODS.map(m=>`<option>${m}</option>`).join('')}</select></div>
+        </div>
+        <div class="field"><label>Responsável</label><input name="responsible" placeholder="Quem pagou"></div>
+        <div class="field"><label>Observações</label><textarea name="notes" style="min-height:50px"></textarea></div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" data-action="close-modal">Cancelar</button>
+      <button class="btn btn-primary" onclick="document.getElementById('form-desp').requestSubmit()">${IC.check} Salvar</button>
+    </div>
+  </div>`;
+}
+
+function modalProduto(editId){
+  const p=editId?db.products.find(x=>x.id===editId):null;
+  return`<div class="modal" id="modal" style="max-width:380px">
+    <div class="modal-hdr"><h3>${p?'Editar':'Novo'} Produto</h3><button class="hdr-btn" data-action="close-modal">${IC.x}</button></div>
+    <div class="modal-body">
+      <form class="form-grid" data-action="save-produto" id="form-prod">
+        ${p?`<input type="hidden" name="id" value="${p.id}">`:''}
+        <div class="field"><label>Nome *</label><input name="name" required value="${esc(p?.name||'')}" placeholder="Ex: Vídeo 4K"></div>
+        <div class="form-row">
+          <div class="field"><label>Preço (R$)</label><input type="number" name="price" step="0.01" value="${esc(p?.price||'')}"></div>
+          <div class="field"><label>Custo (R$)</label><input type="number" name="cost" step="0.01" value="${esc(p?.cost||'')}"></div>
+        </div>
+        <div class="field"><label>Descrição</label><input name="description" value="${esc(p?.description||'')}"></div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" data-action="close-modal">Cancelar</button>
+      <button class="btn btn-primary" onclick="document.getElementById('form-prod').requestSubmit()">${IC.check} Salvar</button>
+    </div>
+  </div>`;
+}
+
+function modalMembro(){
+  return`<div class="modal" id="modal" style="max-width:400px">
+    <div class="modal-hdr"><h3>Membro da Equipe</h3><button class="hdr-btn" data-action="close-modal">${IC.x}</button></div>
+    <div class="modal-body">
+      <form class="form-grid" data-action="save-membro" id="form-mb">
+        <div class="field"><label>Nome *</label><input name="name" required placeholder="Nome completo"></div>
+        <div class="form-row">
+          <div class="field"><label>Função</label><select name="role">${TEAM_ROLES.map(r=>`<option>${r}</option>`).join('')}</select></div>
+          <div class="field"><label>Telefone</label><input name="phone" placeholder="(00)0000-0000"></div>
+        </div>
+        <div class="form-row">
+          <div class="field"><label>Diária (R$)</label><input type="number" name="dailyRate" step="0.01" placeholder="0,00"></div>
+          <div class="field"><label>Nº de dias</label><input type="number" name="days" value="1" min="1"></div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" data-action="close-modal">Cancelar</button>
+      <button class="btn btn-primary" onclick="document.getElementById('form-mb').requestSubmit()">${IC.check} Salvar</button>
+    </div>
+  </div>`;
+}
+
+function modalEquip(){
+  return`<div class="modal" id="modal" style="max-width:400px">
+    <div class="modal-hdr"><h3>Equipamento</h3><button class="hdr-btn" data-action="close-modal">${IC.x}</button></div>
+    <div class="modal-body">
+      <form class="form-grid" data-action="save-equip" id="form-eq">
+        <div class="field"><label>Equipamento *</label><input name="name" required placeholder="Câmera, drone, tripé..."></div>
+        <div class="form-row">
+          <div class="field"><label>Responsável</label><input name="responsible"></div>
+          <div class="field"><label>Status</label>
+            <select name="status"><option value="ok">OK</option><option value="problema">Problema</option><option value="emprestado">Emprestado</option></select>
+          </div>
+        </div>
+        <div class="field"><label>Observações</label><input name="notes"></div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" data-action="close-modal">Cancelar</button>
+      <button class="btn btn-primary" onclick="document.getElementById('form-eq').requestSubmit()">${IC.check} Salvar</button>
+    </div>
+  </div>`;
+}
+
+function modalClient(clientId){
+  const client=db.clients.find(c=>c.id===clientId);
+  if(!client)return'';
+  const horses=getClientHorses(clientId);
+  const eventContracts=S.eventId?db.contracts.filter(c=>c.clientId===clientId&&(c.eventId===S.eventId||c.billingModel==='pacote')):[];
+  const eventParts=S.eventId?db.participations.filter(p=>p.clientId===clientId&&p.eventId===S.eventId):[];
+  const totalVal=eventContracts.reduce((s,c)=>s+parseFloat(c.agreedValue||0),0);
+  const totalPaid=eventContracts.reduce((s,c)=>s+parseFloat(c.paidValue||0),0);
+
+  return`<div class="modal" id="modal">
+    <div class="modal-hdr">
+      <div>
+        <h3>${esc(client.name)}</h3>
+        <div style="font-size:12px;color:var(--muted)">${client.phone||''}${client.instagram?' · @'+esc(client.instagram):''}</div>
+      </div>
+      <button class="hdr-btn" data-action="close-modal">${IC.x}</button>
+    </div>
+    <div class="modal-body">
+      <div class="card-grid" style="grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+        <div class="kpi gold" style="padding:10px 12px"><div class="kpi-label">Total</div><div class="kpi-value" style="font-size:18px">${cur(totalVal)}</div></div>
+        <div class="kpi${totalPaid<totalVal?' amber':' green'}" style="padding:10px 12px"><div class="kpi-label">Pago</div><div class="kpi-value" style="font-size:18px">${cur(totalPaid)}</div></div>
+      </div>
+
+      <div class="card-title">🐎 Cavalos (${horses.length})</div>
+      <div class="stack" style="margin-bottom:12px">
+        ${horses.map(h=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--surf2);border-radius:var(--r-sm)">
+          <span style="font-weight:600">${esc(h.name)}</span>
+          ${h.notes?`<span style="color:var(--muted);font-size:11px">${esc(h.notes)}</span>`:''}
+        </div>`).join('')||'<div style="color:var(--muted);font-size:13px;padding:4px 0">Nenhum cavalo cadastrado</div>'}
+      </div>
+
+      ${S.eventId?`
+      <div class="card-title">Contratos neste evento (${eventContracts.length})</div>
+      <div class="stack" style="margin-bottom:12px">
+        ${eventContracts.map(c=>{
+          const bm=billingLabel(c.billingModel);
+          const horse=c.horseId?getHorse(c.horseId):null;
+          const ps=payLabel(c.payStatus||'pendente');
+          return`<div style="padding:8px 10px;background:var(--surf2);border-radius:var(--r-sm)">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div style="font-weight:600;font-size:12px">${bm.label}${horse?` · 🐎 ${esc(horse.name)}`:''}${c.packageType?' · '+esc(c.packageType):''}</div>
+              <span class="badge badge-${c.payStatus||'pendente'}" style="font-size:10px">${ps.label}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:12px">
+              <span style="color:var(--muted)">Contratado: <strong style="color:var(--text)">${cur(c.agreedValue)}</strong></span>
+              <span style="color:var(--muted)">Pago: <strong style="color:var(--green)">${cur(c.paidValue)}</strong></span>
+            </div>
+          </div>`;
+        }).join('')||'<div style="color:var(--muted);font-size:13px;padding:4px 0">Nenhum contrato neste evento</div>'}
+      </div>
+
+      <div class="card-title">Participações neste evento (${eventParts.length})</div>
+      <div class="stack">
+        ${eventParts.map(p=>{
+          const horse=getHorse(p.horseId);
+          const fs=filmLabel(p.filmStatus||'aguardando');
+          return`<div class="entry-row" data-action="close-open-part" data-id="${p.id}">
+            <div class="entry-info">
+              <div class="entry-client">🐎 ${esc(horse.name)} <span style="color:var(--muted);font-weight:400">Nº${esc(p.inscriptionNumber||'—')}</span></div>
+              <div class="entry-horse">${fmtDate(p.day)}${p.proofTime?' · '+esc(p.proofTime):''}</div>
+              <div class="entry-badges"><span class="badge badge-${p.filmStatus||'aguardando'}">${fs.label}</span></div>
+            </div>
+          </div>`;
+        }).join('')||'<div class="empty" style="padding:20px">Nenhuma participação.</div>'}
+      </div>
+      `:''}
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" data-action="del-client" data-id="${clientId}">${IC.trash}</button>
+      <button class="btn btn-ghost" data-action="close-modal">Fechar</button>
+      <button class="btn btn-primary" data-action="new-part-for-client" data-id="${clientId}">${IC.plus} Nova Participação</button>
+    </div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EVENT HANDLERS
+// ═══════════════════════════════════════════════════════════════
+function handleAction(action,el){
+  const id=el.dataset.id;
+  switch(action){
+    case 'nav':
+      S.page=el.dataset.page;S.sub='';S.search='';render();break;
+    case 'config-tab':
+      S.sub=el.dataset.val;render();break;
+    case 'open-modal':
+      S.modal=el.dataset.modal;S.editId=el.dataset.editId||null;render();break;
+    case 'close-modal':
+      closeModal();break;
+    case 'filter-day':
+      S.filterDay=el.dataset.val;render();break;
+    case 'filter-film':
+      S.filterFilm=el.dataset.val;render();break;
+    case 'edit-num':{
+      const part=db.participations.find(p=>p.id===id);
+      if(!part)break;
+      const inp=document.createElement('input');
+      inp.type='text';inp.value=part.inscriptionNumber||'';inp.className='num-input';inp.placeholder='Nº';
+      const save=()=>{part.inscriptionNumber=inp.value.trim();saveDB();render()};
+      inp.addEventListener('blur',save);
+      inp.addEventListener('keydown',e=>{if(e.key==='Enter')inp.blur();if(e.key==='Escape'){inp.removeEventListener('blur',save);render();}});
+      el.replaceWith(inp);inp.focus();inp.select();
+      break;}
+    case 'quick-film':
+      S.modal='status-filmagem';S.editId=id;render();break;
+    case 'toggle-check':{
+      const part=db.participations.find(p=>p.id===id);
+      if(part){part[el.dataset.key]=!part[el.dataset.key];saveDB();render();}
+      break;}
+    case 'quick-desp':
+      S._prefillDespCat=el.dataset.cat;S.modal='nova-despesa';render();break;
+    case 'set-film-status':{
+      const part=db.participations.find(p=>p.id===id);
+      if(part){part.filmStatus=el.dataset.val;saveDB();showToast('Status atualizado');closeModal();}
+      break;}
+    case 'open-part':
+      S.modal='editar-participacao';S.editId=id;render();break;
+    case 'open-client':
+      S.modal='ver-cliente';S.editId=id;render();break;
+    case 'close-open-part':
+      S.modal='editar-participacao';S.editId=id;render();break;
+    case 'new-part-for-client':
+      S._prefillClient=id;S.modal='nova-participacao';render();break;
+    case 'edit-event':
+      S.modal='novo-evento';S.editId=id;render();break;
+    case 'edit-product':
+      S.modal='editar-produto';S.editId=id;render();break;
+    case 'del-part':
+      if(!confirm('Remover esta participação?'))break;
+      db.participations=db.participations.filter(p=>p.id!==id);
+      saveDB();showToast('Participação removida');closeModal();break;
+    case 'del-expense':
+      db.expenses=db.expenses.filter(e=>e.id!==id);saveDB();showToast('Despesa removida');render();break;
+    case 'del-event':
+      if(!confirm('Remover este evento?'))break;
+      db.participations=db.participations.filter(p=>p.eventId!==id);
+      db.contracts=db.contracts.filter(c=>c.eventId!==id||c.billingModel==='pacote');
+      db.expenses=db.expenses.filter(e=>e.eventId!==id);
+      db.team=db.team.filter(t=>t.eventId!==id);
+      db.equipment=db.equipment.filter(e=>e.eventId!==id);
+      db.events=db.events.filter(e=>e.id!==id);
+      if(S.eventId===id)S.eventId=db.events[0]?.id||null;
+      saveDB();render();break;
+    case 'del-product':
+      db.products=db.products.filter(p=>p.id!==id);saveDB();showToast('Produto removido');render();break;
+    case 'del-team':
+      db.team=db.team.filter(t=>t.id!==id);saveDB();showToast('Membro removido');render();break;
+    case 'del-equip':
+      db.equipment=db.equipment.filter(e=>e.id!==id);saveDB();showToast('Equipamento removido');render();break;
+    case 'del-client':{
+      const client=db.clients.find(c=>c.id===id);
+      if(!client)break;
+      const nParts=db.participations.filter(p=>p.clientId===id).length;
+      const msg=nParts>0
+        ?`Remover "${client.name}"? Isso apagará ${nParts} participação(ões) e todos os contratos e cavalos vinculados.`
+        :`Remover "${client.name}"? Cavalos e contratos vinculados também serão removidos.`;
+      if(!confirm(msg))break;
+      const horseIds=db.horses.filter(h=>h.clientId===id).map(h=>h.id);
+      db.participations=db.participations.filter(p=>p.clientId!==id);
+      db.contracts=db.contracts.filter(c=>c.clientId!==id);
+      db.horses=db.horses.filter(h=>h.clientId!==id);
+      db.clients=db.clients.filter(c=>c.id!==id);
+      saveDB();showToast('Cliente removido');closeModal();break;}
+  }
+}
+
+function handleForm(action,form){
+  const fd=new FormData(form);
+  const v=k=>fd.get(k)||'';
+
+  switch(action){
+    case 'save-evento':{
+      const existing=v('id')?db.events.find(e=>e.id===v('id')):null;
+      if(existing){
+        Object.assign(existing,{name:v('name'),startDate:v('startDate'),endDate:v('endDate'),location:v('location'),organizer:v('organizer'),notes:v('notes')});
+      }else{
+        const ne={id:uid(),name:v('name'),startDate:v('startDate'),endDate:v('endDate'),location:v('location'),organizer:v('organizer'),notes:v('notes')};
+        db.events.push(ne);S.eventId=ne.id;
+      }
+      saveDB();showToast('Evento salvo');closeModal();break;}
+
+    case 'save-participacao':{
+      // 1. Resolve client
+      let clientId=v('clientId');
+      if(clientId==='__new__'){
+        const nc={id:uid(),name:v('newClientName')||'Sem nome',phone:v('newClientPhone'),instagram:v('newClientInstagram'),notes:''};
+        db.clients.push(nc);clientId=nc.id;
+      }
+      if(!clientId){showToast('Selecione um cliente','error');return;}
+
+      // 2. Resolve horse
+      let horseId=v('horseId');
+      if(horseId==='__new_horse__'){
+        const nh={id:uid(),clientId,name:v('newHorseName')||'Cavalo',notes:''};
+        db.horses.push(nh);horseId=nh.id;
+      }
+      if(!horseId){showToast('Selecione um cavalo','error');return;}
+
+      // 3. Resolve/create contract
+      const billingModel=v('billingModel')||'por_cavalo';
+      const isPacote=billingModel==='pacote';
+      const existingContractId=v('contractId');
+      let contractId;
+      if(existingContractId){
+        const c=db.contracts.find(c=>c.id===existingContractId);
+        if(c){
+          if(!isPacote){
+            Object.assign(c,{billingModel,horseId:billingModel==='por_cavalo'?horseId:null,
+              agreedValue:parseFloat(v('agreedValue'))||0,paidValue:parseFloat(v('paidValue'))||0,
+              paymentMethod:v('paymentMethod'),payStatus:v('payStatus')});
+          }else{
+            Object.assign(c,{billingModel,packageType:v('packageType'),eventId:null});
+          }
+          contractId=c.id;
+        }
+      }else{
+        const nc={
+          id:uid(),clientId,
+          eventId:isPacote?null:S.eventId,
+          billingModel,
+          horseId:billingModel==='por_cavalo'?horseId:null,
+          packageType:isPacote?v('packageType'):null,
+          agreedValue:isPacote?0:parseFloat(v('agreedValue'))||0,
+          paidValue:isPacote?0:parseFloat(v('paidValue'))||0,
+          paymentMethod:v('paymentMethod')||'Pix',
+          payStatus:isPacote?'pacote':v('payStatus')||'pendente',
+          notes:'',
+        };
+        db.contracts.push(nc);contractId=nc.id;
+      }
+
+      // 4. Calc recognition
+      const proofTime=v('proofTime');
+      const recognitionOverride=fd.get('recognitionOverride')==='on';
+      let recognitionTime=v('recognitionTime');
+      if(!recognitionOverride||!recognitionTime)recognitionTime=calcRecog(proofTime);
+
+      // 5. Create/update participation
+      const partId=v('id');
+      if(partId){
+        const p=db.participations.find(p=>p.id===partId);
+        if(p)Object.assign(p,{clientId,horseId,contractId,
+          day:v('day'),proofTime,recognitionTime,recognitionOverride,
+          proofName:v('proofName'),inscriptionNumber:v('inscriptionNumber'),category:v('category'),
+          filmStatus:v('filmStatus'),cameraman:v('cameraman'),materialLink:v('materialLink'),filmNotes:v('notes')});
+      }else{
+        db.participations.push({
+          id:uid(),eventId:S.eventId,clientId,horseId,contractId,
+          day:v('day'),proofTime,recognitionTime,recognitionOverride,
+          proofName:v('proofName'),inscriptionNumber:v('inscriptionNumber'),category:v('category'),
+          filmStatus:'aguardando',cameraman:v('cameraman'),materialLink:v('materialLink'),filmNotes:v('notes'),
+          checkRecog:false,checkPaddock:false,checkProva:false,
+        });
+      }
+      S._prefillClient=null;
+      saveDB();showToast('Participação salva');closeModal();break;}
+
+    case 'save-despesa':
+      db.expenses.push({id:uid(),eventId:S.eventId,description:v('description'),
+        category:v('category'),date:v('date'),value:parseFloat(v('value'))||0,
+        method:v('method'),responsible:v('responsible'),notes:v('notes')});
+      saveDB();showToast('Despesa registrada');closeModal();break;
+
+    case 'save-produto':{
+      const pid=v('id');
+      if(pid){const p=db.products.find(p=>p.id===pid);if(p)Object.assign(p,{name:v('name'),price:parseFloat(v('price'))||0,cost:parseFloat(v('cost'))||0,description:v('description')});}
+      else db.products.push({id:uid(),name:v('name'),price:parseFloat(v('price'))||0,cost:parseFloat(v('cost'))||0,description:v('description')});
+      saveDB();showToast('Produto salvo');closeModal();break;}
+
+    case 'save-membro':
+      db.team.push({id:uid(),eventId:S.eventId,name:v('name'),role:v('role'),phone:v('phone'),
+        dailyRate:parseFloat(v('dailyRate'))||0,days:parseFloat(v('days'))||1});
+      saveDB();showToast('Membro adicionado');closeModal();break;
+
+    case 'save-equip':
+      db.equipment.push({id:uid(),eventId:S.eventId,name:v('name'),responsible:v('responsible'),status:v('status'),notes:v('notes')});
+      saveDB();showToast('Equipamento salvo');closeModal();break;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BIND AFTER RENDER
+// ═══════════════════════════════════════════════════════════════
+function bindAfter(){
+  // Event select
+  const evtSel=document.getElementById('evt-select');
+  if(evtSel)evtSel.addEventListener('change',()=>{S.eventId=evtSel.value||null;saveDB();render()});
+
+  // Proof time → auto-fill recognition
+  const proofIn=document.getElementById('inp-proof-time');
+  const recogIn=document.getElementById('inp-recog');
+  const overrideIn=document.getElementById('recog-override');
+  if(proofIn&&recogIn){
+    proofIn.addEventListener('input',()=>{
+      if(overrideIn&&overrideIn.checked)return;
+      recogIn.value=calcRecog(proofIn.value);
+    });
+  }
+
+  // Client select → update horse dropdown
+  const selClient=document.getElementById('sel-client');
+  const selHorse=document.getElementById('sel-horse');
+  const newClientFields=document.getElementById('new-client-fields');
+  const newHorseFields=document.getElementById('new-horse-fields');
+  if(selClient){
+    selClient.addEventListener('change',()=>{
+      const val=selClient.value;
+      if(newClientFields)newClientFields.style.display=val==='__new__'?'block':'none';
+      if(selHorse&&val&&val!=='__new__'){
+        const horses=db.horses.filter(h=>h.clientId===val);
+        selHorse.innerHTML='<option value="">— Selecione —</option>'+
+          horses.map(h=>`<option value="${h.id}">${esc(h.name)}</option>`).join('')+
+          '<option value="__new_horse__">+ Novo cavalo...</option>';
+        if(newHorseFields)newHorseFields.style.display='none';
+      }
+    });
+    if(S._prefillClient&&selClient.value===''){
+      selClient.value=S._prefillClient;
+      selClient.dispatchEvent(new Event('change'));
+    }
+  }
+  if(selHorse){
+    selHorse.addEventListener('change',()=>{
+      if(newHorseFields)newHorseFields.style.display=selHorse.value==='__new_horse__'?'block':'none';
+    });
+  }
+
+  // Billing model → toggle fields
+  const selBilling=document.getElementById('sel-billing');
+  const pacoteFields=document.getElementById('pacote-fields');
+  const valueFields=document.getElementById('value-fields');
+  if(selBilling){
+    selBilling.addEventListener('change',()=>{
+      const isPacote=selBilling.value==='pacote';
+      if(pacoteFields)pacoteFields.style.display=isPacote?'':'none';
+      if(valueFields)valueFields.style.display=isPacote?'none':'';
+    });
+  }
+
+  // Search
+  document.querySelectorAll('[data-change="search"]').forEach(el=>{
+    el.addEventListener('input',e=>{S.search=e.target.value;render()});
+  });
+
+  // Overlay click closes modal
+  const overlay=document.getElementById('overlay');
+  if(overlay)overlay.addEventListener('click',e=>{if(e.target===overlay)closeModal()});
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GLOBAL EVENT DELEGATION
+// ═══════════════════════════════════════════════════════════════
+document.addEventListener('click',e=>{
+  const el=e.target.closest('[data-action]');
+  if(!el)return;
+  handleAction(el.dataset.action,el);
+});
+document.addEventListener('submit',e=>{
+  e.preventDefault();
+  const form=e.target.closest('form[data-action]');
+  if(form)handleForm(form.dataset.action,form);
+});
+
+// ═══════════════════════════════════════════════════════════════
+// CLOCK
+// ═══════════════════════════════════════════════════════════════
+setInterval(()=>{const el=document.getElementById('clock');if(el)el.textContent=nowTime()},15000);
+
+// ═══════════════════════════════════════════════════════════════
+// AUTO STATUS — reconhecimento
+// ═══════════════════════════════════════════════════════════════
+function autoUpdateStatuses(){
+  if(!S.eventId)return;
+  const today=todayISO();
+  const now=toMins(nowTime());
+  let changed=false;
+  db.participations.forEach(p=>{
+    if(p.eventId!==S.eventId)return;
+    if(!p.day||p.day!==today)return;
+    if(p.filmStatus!=='aguardando')return;
+    if(p.recognitionTime&&toMins(p.recognitionTime)<=now){p.filmStatus='reconhecimento';changed=true;}
+  });
+  if(changed){saveDB();render();}
+}
+setInterval(autoUpdateStatuses,30000);
+autoUpdateStatuses();
+
+// ═══════════════════════════════════════════════════════════════
+// EXPORT / IMPORT
+// ═══════════════════════════════════════════════════════════════
+function exportJSON(){
+  const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`ondigital-v3-${todayISO()}.json`;a.click();
+}
+function importJSON(){
+  const inp=document.createElement('input');inp.type='file';inp.accept='.json';
+  inp.onchange=e=>{
+    const f=e.target.files[0];if(!f)return;
+    const r=new FileReader();r.onload=ev=>{
+      try{db=JSON.parse(ev.target.result);saveDB();S.eventId=db.events[0]?.id||null;render();showToast('Dados importados!');}
+      catch(err){showToast('Erro ao importar','error');}
+    };r.readAsText(f);
+  };inp.click();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+render();
+</script>
+</body>
+</html>
