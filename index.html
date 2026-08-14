@@ -462,6 +462,8 @@ const IC={
   check:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
   alert:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
   menu:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>`,
+  globe:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`,
+  download:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`,
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -504,6 +506,7 @@ function renderSidebar(){
     {id:'clientes',icon:'users',    label:'Clientes'},
     {id:'financas',icon:'dollar',   label:'Finanças'},
     {id:'despesas',icon:'trending', label:'Despesas'},
+    {id:'fph',     icon:'globe',    label:'FPH Sync'},
     {id:'config',  icon:'settings', label:'Configurações'},
   ];
   return`<nav class="sidebar"><div class="sb-nav">
@@ -531,6 +534,7 @@ function renderPage(){
     case 'ordem':    return pageOrdem();
     case 'agenda':   return pageAgenda();
     case 'clientes': return pageClientes();
+    case 'fph':      return pageFPH();
     case 'financas': return pageFinancas();
     case 'despesas': return pageDespesas();
     case 'config':   return pageConfig();
@@ -623,6 +627,72 @@ function pageAgora(){
     </div>
     <div class="stack">${timeline}</div>
   `;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PAGE: FPH SYNC
+// ═══════════════════════════════════════════════════════════════
+function pageFPH(){
+  const data=window._fphData||{};
+  const provaIds=Object.keys(data);
+  const bkRaw=`(function(){var rows=document.querySelectorAll('table tr'),p=[];rows.forEach(function(tr){var t=tr.querySelectorAll('td');if(t.length<4)return;var n=t[0].textContent.trim();if(!n.match(/^\\d+\\s*\\xb0/))return;p.push({order:parseInt(n),name:t[1].textContent.trim(),horse:t[2].textContent.trim().split(/\\d{2}\\/\\d{2}\\/\\d{4}/)[0].trim(),cat:(t[4]||t[3]).textContent.trim().split('\\n')[0].trim()});});var m=location.href.match(/ID=(\\d+)/i),id=m?m[1]:'unknown';fetch('https://firestore.googleapis.com/v1/projects/on-digital-322f4/databases/(default)/documents/fph_sync/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields:{participants:{stringValue:JSON.stringify(p)},url:{stringValue:location.href},provaId:{stringValue:id},ts:{integerValue:''+Date.now()}}})}).then(function(){alert('FPH Sync: '+p.length+' participantes enviados! (Prova ID '+id+')')}).catch(function(e){alert('Erro: '+e.message)});})();`;
+  const bkHref='javascript:'+encodeURIComponent(bkRaw);
+  return`<div style="max-width:700px">
+    <div style="margin-bottom:18px">
+      <h2 style="font-size:18px;font-weight:700;color:var(--text)">FPH Sync</h2>
+      <p style="font-size:12px;color:var(--muted);margin-top:2px">Importe participantes do site da Federação Paulista de Hipismo</p>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title">Como usar</div>
+      <ol style="font-size:13px;color:var(--muted);line-height:1.8;padding-left:18px;margin-bottom:14px">
+        <li>Arraste o botão abaixo para a barra de favoritos do navegador</li>
+        <li>Acesse <strong style="color:var(--text)">fph.com.br → Calendário → Ordem de Entrada</strong></li>
+        <li>Clique no favorito <strong style="color:var(--gold)">FPH → ON Digital</strong></li>
+        <li>Volte aqui e clique em <strong style="color:var(--text)">Importar</strong></li>
+      </ol>
+      <a href="${bkHref}" onclick="return false;"
+         draggable="true"
+         ondragstart="event.dataTransfer.setData('text/uri-list',this.href);event.dataTransfer.setData('text/plain',this.href);"
+         style="display:inline-flex;align-items:center;gap:7px;padding:10px 18px;background:var(--gold);color:#000;border-radius:var(--r-sm);font-size:13px;font-weight:700;text-decoration:none;cursor:grab;user-select:none">
+        ${IC.globe} FPH → ON Digital
+      </a>
+      <p style="font-size:11px;color:var(--muted);margin-top:8px">Arraste este botão para a barra de favoritos do seu navegador</p>
+    </div>
+    ${provaIds.length===0?`<div class="empty">${IC.globe}<p>Nenhuma prova sincronizada ainda.<br>Use o bookmarklet no site da FPH.</p></div>`:
+    provaIds.map(pid=>{
+      const prova=data[pid];
+      const parts=prova.participants||[];
+      const ts=prova.ts?new Date(Number(prova.ts)).toLocaleString('pt-BR'):'—';
+      return`<div class="card" style="margin-bottom:12px">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px">
+          <div>
+            <div style="font-size:14px;font-weight:700">Prova ${esc(pid)}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">Sinc: ${ts} · ${parts.length} participantes</div>
+            ${prova.url?`<a href="${esc(prova.url)}" target="_blank" rel="noopener" style="font-size:11px;color:var(--blue);text-decoration:none;word-break:break-all">${esc(prova.url)}</a>`:''}
+          </div>
+          <button class="btn btn-primary btn-sm" style="flex-shrink:0" data-action="import-fph-prova" data-provaid="${esc(pid)}">${IC.download} Importar</button>
+        </div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;font-size:12px;border-collapse:collapse">
+            <thead><tr style="color:var(--muted);border-bottom:1px solid var(--border)">
+              <th style="text-align:left;padding:4px 6px;width:30px">#</th>
+              <th style="text-align:left;padding:4px 6px">Competidor</th>
+              <th style="text-align:left;padding:4px 6px">Cavalo</th>
+              <th style="text-align:left;padding:4px 6px">Categoria</th>
+            </tr></thead>
+            <tbody>${parts.slice(0,15).map(p=>`<tr style="border-bottom:1px solid var(--border)">
+              <td style="padding:5px 6px;color:var(--muted)">${p.order}</td>
+              <td style="padding:5px 6px;font-weight:500">${esc(p.name)}</td>
+              <td style="padding:5px 6px;color:var(--muted)">${esc(p.horse)}</td>
+              <td style="padding:5px 6px;color:var(--teal);font-size:11px">${esc(p.cat)}</td>
+            </tr>`).join('')}
+            ${parts.length>15?`<tr><td colspan="4" style="padding:6px;color:var(--muted);font-size:11px">...e mais ${parts.length-15} participantes</td></tr>`:''}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1034,6 +1104,7 @@ function renderModal(){
     case 'ver-cliente':        return modalClient(S.editId);
     case 'add-horse':          return modalAddHorse(S._horseClient);
     case 'novo-cliente':       return modalNovoCliente();
+    case 'fph-import':         return modalFphImport();
     default: return'';
   }
 }
@@ -1355,6 +1426,41 @@ function modalNovoCliente(){
   </div>`;
 }
 
+function modalFphImport(){
+  const provaId=S._fphProvaId;
+  const prova=(window._fphData||{})[provaId];
+  if(!prova)return'';
+  const parts=prova.participants||[];
+  return`<div class="modal" id="modal" style="max-width:560px">
+    <div class="modal-hdr"><h3>Selecionar Clientes — Prova ${esc(provaId)}</h3><button class="hdr-btn" data-action="close-modal">${IC.x}</button></div>
+    <div class="modal-body" style="padding:0">
+      <div style="padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
+        <div style="position:relative;flex:1">
+          <span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--muted);width:16px;height:16px;display:flex;pointer-events:none">${IC.search}</span>
+          <input id="fph-search" placeholder="Buscar por nome..." style="width:100%;padding:7px 10px 7px 32px;background:var(--surf2);border:1px solid var(--border2);border-radius:var(--r-sm);color:var(--text);font-size:13px;outline:none" oninput="fphFilterList(this.value)">
+        </div>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);cursor:pointer;white-space:nowrap">
+          <input type="checkbox" id="fph-chk-all" onchange="fphToggleAll(this.checked)"> Todos
+        </label>
+      </div>
+      <div id="fph-list" style="max-height:400px;overflow-y:auto">
+        ${parts.map((p,i)=>`<label id="fph-row-${i}" style="display:flex;align-items:center;gap:12px;padding:10px 18px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s" onmouseover="this.style.background='var(--surf2)'" onmouseout="this.style.background=''">
+          <input type="checkbox" class="fph-chk" data-idx="${i}" style="width:16px;height:16px;accent-color:var(--gold);flex-shrink:0">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;color:var(--text)">${esc(p.name)}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:1px">${esc(p.horse)}${p.cat?' · <span style="color:var(--teal)">'+esc(p.cat)+'</span>':''}</div>
+          </div>
+          <div style="font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums">#${p.order}</div>
+        </label>`).join('')}
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" data-action="close-modal">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmFphImport('${esc(provaId)}')">${IC.download} Importar selecionados</button>
+    </div>
+  </div>`;
+}
+
 function modalAddHorse(clientId){
   const client=db.clients.find(c=>c.id===clientId);
   if(!client)return'';
@@ -1571,6 +1677,12 @@ function handleAction(action,el){
       db.team=db.team.filter(t=>t.id!==id);saveDB();showToast('Membro removido');render();break;
     case 'del-equip':
       db.equipment=db.equipment.filter(e=>e.id!==id);saveDB();showToast('Equipamento removido');render();break;
+    case 'import-fph-prova':{
+      const provaId=el.dataset.provaid;
+      const prova=(window._fphData||{})[provaId];
+      if(!prova||!prova.participants||!prova.participants.length){showToast('Prova não encontrada','error');break;}
+      if(!S.eventId){showToast('Selecione um evento primeiro','error');break;}
+      S._fphProvaId=provaId;S.modal='fph-import';render();break;}
     case 'del-client':{
       const client=db.clients.find(c=>c.id===id);
       if(!client)break;
@@ -1929,6 +2041,44 @@ function importJSON(){
 }
 
 // ═══════════════════════════════════════════════════════════════
+// FPH IMPORT HELPERS
+// ═══════════════════════════════════════════════════════════════
+function fphFilterList(q){
+  q=q.toLowerCase().trim();
+  document.querySelectorAll('#fph-list label').forEach(row=>{
+    const txt=row.textContent.toLowerCase();
+    row.style.display=(!q||txt.includes(q))?'':'none';
+  });
+}
+function fphToggleAll(checked){
+  document.querySelectorAll('#fph-list .fph-chk').forEach(chk=>{
+    if(chk.closest('label').style.display!=='none')chk.checked=checked;
+  });
+}
+function confirmFphImport(provaId){
+  const prova=(window._fphData||{})[provaId];
+  if(!prova)return;
+  const allParts=prova.participants||[];
+  const selected=[...document.querySelectorAll('.fph-chk:checked')].map(chk=>allParts[parseInt(chk.dataset.idx)]).filter(Boolean);
+  if(!selected.length){showToast('Selecione ao menos um participante','error');return;}
+  let created=0,parts=0;
+  selected.forEach(p=>{
+    let client=db.clients.find(c=>c.name.trim().toLowerCase()===p.name.trim().toLowerCase());
+    if(!client){client={id:uid(),name:p.name.trim(),phone:'',email:'',notes:''};db.clients.push(client);created++;}
+    let horse=db.horses.find(h=>h.clientId===client.id&&h.name.trim().toLowerCase()===p.horse.trim().toLowerCase());
+    if(!horse&&p.horse){horse={id:uid(),clientId:client.id,name:p.horse.trim()};db.horses.push(horse);}
+    const already=db.participations.find(x=>x.eventId===S.eventId&&x.clientId===client.id&&x.day===todayISO());
+    if(!already){
+      db.participations.push({id:uid(),eventId:S.eventId,clientId:client.id,horseId:horse?.id||null,
+        inscriptionNumber:String(p.order),day:todayISO(),time:'',recognitionTime:'',
+        filmStatus:'aguardando',payStatus:'pendente',notes:p.cat||''});
+      parts++;
+    }
+  });
+  saveDB();closeModal();showToast(`${created} clientes novos · ${parts} participações criadas`);render();
+}
+
+// ═══════════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════════
 render();
@@ -1946,6 +2096,22 @@ try{
   if(!firebase.apps.length)firebase.initializeApp(firebaseConfig);
   window._fsDb=firebase.firestore();
   // Empurra dados locais se Firestore estiver vazio; senão, ouve atualizações em tempo real
+  // Listen to FPH sync collection
+  window._fphData={};
+  window._fsDb.collection('fph_sync').onSnapshot(snap=>{
+    snap.forEach(doc=>{
+      const d=doc.data();
+      window._fphData[doc.id]={
+        participants:JSON.parse(d.participants||'[]'),
+        url:d.url||'',
+        provaId:d.provaId||doc.id,
+        ts:d.ts||0
+      };
+    });
+    if(S.page==='fph')render();
+    else if(snap.docChanges().length>0)showToast('Nova prova FPH sincronizada!');
+  },err=>console.warn('FPH sync error',err));
+
   window._fsDb.collection('ondigital').doc('data').onSnapshot(snap=>{
     if(!snap.exists){
       window._fsDb.collection('ondigital').doc('data').set(db);
