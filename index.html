@@ -1158,7 +1158,7 @@ function modalParticipacao(editId){
               <select name="rowHorseId" class="row-horse-sel" required>
                 <option value="">— Selecione —</option>
                 ${clientHorses.map(h=>`<option value="${h.id}">${esc(h.name)}</option>`).join('')}
-                ${selClient?'<option value="__new_horse__">+ Novo cavalo...</option>':''}
+                <option value="__new_horse__">+ Novo cavalo...</option>
               </select>
             </div>
             <div class="new-horse-row" style="display:none">
@@ -1748,8 +1748,8 @@ function bindAfter(){
     selClient.addEventListener('change',()=>{
       const val=selClient.value;
       if(newClientFields)newClientFields.style.display=val==='__new__'?'block':'none';
-      if(val&&val!=='__new__'){
-        const horses=db.horses.filter(h=>h.clientId===val);
+      {
+        const horses=(val&&val!=='__new__')?db.horses.filter(h=>h.clientId===val):[];
         const horseOpts='<option value="">— Selecione —</option>'+
           horses.map(h=>`<option value="${h.id}">${esc(h.name)}</option>`).join('')+
           '<option value="__new_horse__">+ Novo cavalo...</option>';
