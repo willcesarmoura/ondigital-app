@@ -978,6 +978,7 @@ function renderModal(){
     case 'novo-membro':        return modalMembro();
     case 'novo-equip':         return modalEquip();
     case 'ver-cliente':        return modalClient(S.editId);
+    case 'add-horse':          return modalAddHorse(S._horseClient);
     default: return'';
   }
 }
@@ -1084,25 +1085,34 @@ function modalParticipacao(editId){
           </div>
         </div>
 
-        <div class="form-section">Prova</div>
-        <div class="form-row">
-          <div class="field"><label>Data</label><input type="date" name="day" value="${esc(part?.day||todayISO())}" id="inp-day"></div>
-          <div class="field"><label>Horário Prova *</label><input type="time" name="proofTime" required value="${esc(part?.proofTime||'')}" id="inp-proof-time"></div>
+        <div class="form-section" style="display:flex;align-items:center;justify-content:space-between">
+          <span>Provas / Dias</span>
+          ${part?'':`<button type="button" id="btn-add-day" class="btn btn-ghost btn-sm" style="font-size:12px">${IC.plus} Dia</button>`}
         </div>
-        <div class="form-row">
-          <div class="field"><label>Reconhecimento</label>
-            <input type="time" name="recognitionTime" value="${esc(part?.recognitionTime||'')}" id="inp-recog" placeholder="Auto">
-            <div class="field-hint">Auto: prova − 30min</div>
+        <div id="days-list">
+          <div class="day-row" style="background:var(--surf2);border-radius:var(--r-sm);padding:10px;margin-bottom:8px">
+            <div class="form-row" style="align-items:flex-end">
+              <div class="field"><label>Data</label><input type="date" name="day" value="${esc(part?.day||todayISO())}"></div>
+              <div class="field"><label>Horário Prova</label><input type="time" name="proofTime" value="${esc(part?.proofTime||'')}" id="inp-proof-time"></div>
+              ${part?'':`<button type="button" class="btn btn-ghost btn-sm day-row-del" style="margin-bottom:2px" title="Remover">✕</button>`}
+            </div>
+            ${part?`
+            <div class="form-row">
+              <div class="field"><label>Reconhecimento</label>
+                <input type="time" name="recognitionTime" value="${esc(part.recognitionTime||'')}" id="inp-recog" placeholder="Auto">
+                <div class="field-hint">Auto: prova − 30min</div>
+              </div>
+              <div class="field" style="justify-content:flex-end">
+                <label style="display:flex;gap:8px;align-items:center;cursor:pointer;padding-top:20px">
+                  <input type="checkbox" name="recognitionOverride" ${part.recognitionOverride?'checked':''} id="recog-override"> Fixar manual
+                </label>
+              </div>
+            </div>`:''}
+            <div class="form-row">
+              <div class="field"><label>Nome da Prova</label><input name="proofName" value="${esc(part?.proofName||'')}" placeholder="Ex: CCE 1.00m"></div>
+              <div class="field"><label>Nº Inscrição</label><input name="inscriptionNumber" value="${esc(part?.inscriptionNumber||'')}"></div>
+            </div>
           </div>
-          <div class="field" style="justify-content:flex-end">
-            <label style="display:flex;gap:8px;align-items:center;cursor:pointer;padding-top:20px">
-              <input type="checkbox" name="recognitionOverride" ${part?.recognitionOverride?'checked':''} id="recog-override"> Fixar manual
-            </label>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="field"><label>Nome da Prova</label><input name="proofName" value="${esc(part?.proofName||'')}" placeholder="Nome da prova"></div>
-          <div class="field"><label>Nº Inscrição</label><input name="inscriptionNumber" value="${esc(part?.inscriptionNumber||'')}"></div>
         </div>
         <div class="field"><label>Categoria</label><input name="category" value="${esc(part?.category||'')}" placeholder="CCE, Salto..."></div>
 
@@ -1244,6 +1254,26 @@ function modalEquip(){
   </div>`;
 }
 
+function modalAddHorse(clientId){
+  const client=db.clients.find(c=>c.id===clientId);
+  if(!client)return'';
+  return`<div class="modal" id="modal" style="max-width:360px">
+    <div class="modal-hdr"><h3>Novo Cavalo</h3><button class="hdr-btn" data-action="close-modal">${IC.x}</button></div>
+    <div class="modal-body">
+      <form class="form-grid" data-action="save-horse" id="form-horse">
+        <input type="hidden" name="clientId" value="${clientId}">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:4px">Cliente: <strong style="color:var(--text)">${esc(client.name)}</strong></div>
+        <div class="field"><label>Nome do Cavalo *</label><input name="horseName" required placeholder="Nome do cavalo" autofocus></div>
+        <div class="field"><label>Observações</label><input name="horseNotes" placeholder="Raça, cor, outros detalhes..."></div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" data-action="back-to-client" data-id="${clientId}">Voltar</button>
+      <button class="btn btn-primary" onclick="document.getElementById('form-horse').requestSubmit()">${IC.check} Salvar</button>
+    </div>
+  </div>`;
+}
+
 function modalClient(clientId){
   const client=db.clients.find(c=>c.id===clientId);
   if(!client)return'';
@@ -1267,12 +1297,16 @@ function modalClient(clientId){
         <div class="kpi${totalPaid<totalVal?' amber':' green'}" style="padding:10px 12px"><div class="kpi-label">Pago</div><div class="kpi-value" style="font-size:18px">${cur(totalPaid)}</div></div>
       </div>
 
-      <div class="card-title">🐎 Cavalos (${horses.length})</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div class="card-title" style="margin:0">🐎 Cavalos (${horses.length})</div>
+        <button class="btn btn-ghost btn-sm" data-action="open-add-horse" data-id="${clientId}">${IC.plus} Cavalo</button>
+      </div>
       <div class="stack" style="margin-bottom:12px">
         ${horses.map(h=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--surf2);border-radius:var(--r-sm)">
-          <span style="font-weight:600">${esc(h.name)}</span>
-          ${h.notes?`<span style="color:var(--muted);font-size:11px">${esc(h.notes)}</span>`:''}
-        </div>`).join('')||'<div style="color:var(--muted);font-size:13px;padding:4px 0">Nenhum cavalo cadastrado</div>'}
+          <span style="font-weight:600;flex:1">${esc(h.name)}</span>
+          ${h.notes?`<span style="color:var(--muted);font-size:11px;flex:1">${esc(h.notes)}</span>`:''}
+          <button class="hdr-btn" data-action="del-horse" data-id="${h.id}" style="color:var(--red)">${IC.trash}</button>
+        </div>`).join('')||'<div style="color:var(--muted);font-size:13px;padding:4px 0">Nenhum cavalo. Clique em "+ Cavalo" para adicionar.</div>'}
       </div>
 
       ${S.eventId?`
@@ -1367,6 +1401,21 @@ function handleAction(action,el){
       S.modal='editar-participacao';S.editId=id;render();break;
     case 'new-part-for-client':
       S._prefillClient=id;S.modal='nova-participacao';render();break;
+    case 'open-add-horse':
+      S._horseClient=id;S.modal='add-horse';render();break;
+    case 'back-to-client':
+      S.modal='ver-cliente';S.editId=id;render();break;
+    case 'del-horse':{
+      const horse=db.horses.find(h=>h.id===id);
+      if(!horse)break;
+      const nParts=db.participations.filter(p=>p.horseId===id).length;
+      const hClientId=horse.clientId;
+      if(!confirm(`Remover "${horse.name}"?${nParts>0?` Isso apagará ${nParts} participação(ões).`:''}`))break;
+      if(nParts>0)db.participations=db.participations.filter(p=>p.horseId!==id);
+      db.contracts.forEach(c=>{if(c.horseId===id)c.horseId=null;});
+      db.horses=db.horses.filter(h=>h.id!==id);
+      saveDB();showToast('Cavalo removido');
+      S.modal='ver-cliente';S.editId=hClientId;render();break;}
     case 'edit-event':
       S.modal='novo-evento';S.editId=id;render();break;
     case 'edit-product':
@@ -1475,31 +1524,50 @@ function handleForm(action,form){
         db.contracts.push(nc);contractId=nc.id;
       }
 
-      // 4. Calc recognition
-      const proofTime=v('proofTime');
-      const recognitionOverride=fd.get('recognitionOverride')==='on';
-      let recognitionTime=v('recognitionTime');
-      if(!recognitionOverride||!recognitionTime)recognitionTime=calcRecog(proofTime);
-
-      // 5. Create/update participation
+      // 4. Create/update participation(s)
       const partId=v('id');
       if(partId){
+        // Edit: single update
+        const proofTime=v('proofTime');
+        const recognitionOverride=fd.get('recognitionOverride')==='on';
+        let recognitionTime=v('recognitionTime');
+        if(!recognitionOverride||!recognitionTime)recognitionTime=calcRecog(proofTime);
         const p=db.participations.find(p=>p.id===partId);
         if(p)Object.assign(p,{clientId,horseId,contractId,
           day:v('day'),proofTime,recognitionTime,recognitionOverride,
           proofName:v('proofName'),inscriptionNumber:v('inscriptionNumber'),category:v('category'),
           filmStatus:v('filmStatus'),cameraman:v('cameraman'),materialLink:v('materialLink'),filmNotes:v('notes')});
       }else{
-        db.participations.push({
-          id:uid(),eventId:S.eventId,clientId,horseId,contractId,
-          day:v('day'),proofTime,recognitionTime,recognitionOverride,
-          proofName:v('proofName'),inscriptionNumber:v('inscriptionNumber'),category:v('category'),
-          filmStatus:'aguardando',cameraman:v('cameraman'),materialLink:v('materialLink'),filmNotes:v('notes'),
-          checkRecog:false,checkPaddock:false,checkProva:false,
+        // Create: one participation per day row
+        const days=fd.getAll('day');
+        const proofTimes=fd.getAll('proofTime');
+        const proofNames=fd.getAll('proofName');
+        const inscNums=fd.getAll('inscriptionNumber');
+        const category=v('category');
+        const cameraman=v('cameraman');
+        const materialLink=v('materialLink');
+        const filmNotes=v('notes');
+        days.forEach((day,i)=>{
+          const proofTime=proofTimes[i]||'';
+          db.participations.push({
+            id:uid(),eventId:S.eventId,clientId,horseId,contractId,
+            day,proofTime,recognitionTime:calcRecog(proofTime),recognitionOverride:false,
+            proofName:proofNames[i]||'',inscriptionNumber:inscNums[i]||'',category,
+            filmStatus:'aguardando',cameraman,materialLink,filmNotes,
+            checkRecog:false,checkPaddock:false,checkProva:false,
+          });
         });
       }
       S._prefillClient=null;
       saveDB();showToast('Participação salva');closeModal();break;}
+
+    case 'save-horse':{
+      const clientId=v('clientId');
+      const horseName=v('horseName').trim();
+      if(!horseName){showToast('Informe o nome do cavalo','error');return;}
+      db.horses.push({id:uid(),clientId,name:horseName,notes:v('horseNotes')});
+      saveDB();showToast('Cavalo cadastrado');
+      S._horseClient=null;S.modal='ver-cliente';S.editId=clientId;render();break;}
 
     case 'save-despesa':
       db.expenses.push({id:uid(),eventId:S.eventId,description:v('description'),
@@ -1587,6 +1655,34 @@ function bindAfter(){
   document.querySelectorAll('[data-change="search"]').forEach(el=>{
     el.addEventListener('input',e=>{S.search=e.target.value;render()});
   });
+
+  // Multi-day add button (create participation mode)
+  const btnAddDay=document.getElementById('btn-add-day');
+  const daysList=document.getElementById('days-list');
+  if(btnAddDay&&daysList){
+    btnAddDay.addEventListener('click',()=>{
+      const today=todayISO();
+      const row=document.createElement('div');
+      row.className='day-row';
+      row.style.cssText='background:var(--surf2);border-radius:var(--r-sm);padding:10px;margin-bottom:8px';
+      row.innerHTML=`<div class="form-row" style="align-items:flex-end">
+        <div class="field"><label>Data</label><input type="date" name="day" value="${today}"></div>
+        <div class="field"><label>Horário Prova</label><input type="time" name="proofTime"></div>
+        <button type="button" class="btn btn-ghost btn-sm day-row-del" style="margin-bottom:2px" title="Remover">✕</button>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Nome da Prova</label><input name="proofName" placeholder="Ex: CCE 1.00m"></div>
+        <div class="field"><label>Nº Inscrição</label><input name="inscriptionNumber"></div>
+      </div>`;
+      daysList.appendChild(row);
+    });
+    daysList.addEventListener('click',e=>{
+      if(e.target.classList.contains('day-row-del')){
+        const rows=daysList.querySelectorAll('.day-row');
+        if(rows.length>1)e.target.closest('.day-row').remove();
+      }
+    });
+  }
 
   // Overlay click closes modal
   const overlay=document.getElementById('overlay');
