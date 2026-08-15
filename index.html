@@ -554,7 +554,7 @@ function pageAgora(){
 
   const pendingRecog=todayParts.filter(p=>{
     const rt=toMins(p.recognitionTime);
-    return rt>=now&&(p.filmStatus==='aguardando'||p.filmStatus==='reconhecimento');
+    return rt>=now&&!p.checkRecog&&(p.filmStatus==='aguardando'||p.filmStatus==='reconhecimento');
   });
   const nextRecog=pendingRecog[0]||null;
   const pendingProva=todayParts.filter(p=>toMins(p.proofTime)>=now&&p.filmStatus!=='entregue'&&p.filmStatus!=='nao_filmado');
@@ -1710,7 +1710,15 @@ function handleAction(action,el){
       S.modal='status-filmagem';S.editId=id;render();break;
     case 'toggle-check':{
       const part=db.participations.find(p=>p.id===id);
-      if(part){part[el.dataset.key]=!part[el.dataset.key];saveDB();render();}
+      if(part){
+        const key=el.dataset.key;
+        part[key]=!part[key];
+        // Ao marcar reconhecimento como feito, avança o filmStatus
+        if(key==='checkRecog'&&part[key]&&part.filmStatus==='aguardando'){
+          part.filmStatus='reconhecimento';
+        }
+        saveDB();render();
+      }
       break;}
     case 'quick-desp':
       S._prefillDespCat=el.dataset.cat;S.modal='nova-despesa';render();break;
