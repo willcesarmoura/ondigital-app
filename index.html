@@ -553,8 +553,8 @@ function pageAgora(){
   const todayParts=sorted.filter(p=>!p.day||p.day===today);
 
   const pendingRecog=todayParts.filter(p=>{
-    const rt=toMins(p.recognitionTime);
-    return rt>=now&&!p.checkRecog&&(p.filmStatus==='aguardando'||p.filmStatus==='reconhecimento');
+    // Mantém na fila até proofTime passar (não checkRecog) — countdown termina nesse momento
+    return toMins(p.proofTime)>=now&&!p.checkRecog&&(p.filmStatus==='aguardando'||p.filmStatus==='reconhecimento');
   });
   const nextRecog=pendingRecog[0]||null;
   const pendingProva=todayParts.filter(p=>toMins(p.proofTime)>=now&&p.filmStatus!=='entregue'&&p.filmStatus!=='nao_filmado');
