@@ -775,34 +775,56 @@ function pageOrdem(){
   const today=todayISO();
   const selDay=S.filterDay==='all'?today:S.filterDay;
   let filtered=parts.filter(p=>!p.day||p.day===selDay);
-  filtered.sort((a,b)=>(parseInt(a.inscriptionNumber)||99999)-(parseInt(b.inscriptionNumber)||99999));
+  // Ordenar: horário da prova → número de inscrição
+  filtered.sort((a,b)=>{
+    const td=toMins(a.proofTime||'99:99')-toMins(b.proofTime||'99:99');
+    if(td!==0)return td;
+    return(parseInt(a.inscriptionNumber)||99999)-(parseInt(b.inscriptionNumber)||99999);
+  });
 
-  const cards=filtered.map(p=>{
-    const cl=getClient(p.clientId);
-    const horse=getHorse(p.horseId);
-    const fs=filmLabel(p.filmStatus||'aguardando');
-    const contract=getContract(p.contractId);
-    const ps=payLabel(contract?.payStatus||'pendente');
-    return`<div class="ordem-card" style="border-left:3px solid ${fs.color}">
-      <div class="ordem-num-box" data-action="edit-num" data-id="${p.id}" title="Clique para editar número">${esc(p.inscriptionNumber||'—')}</div>
-      <div class="ordem-info">
-        <div class="ordem-client">${esc(cl.name)}</div>
-        <div class="ordem-horse">🐎 ${esc(horse.name)}${p.proofName?' · '+esc(p.proofName):''}</div>
-        <div class="ordem-meta">
-          ${contract?billingBadge(contract.billingModel,true):''}
-          ${p.recognitionTime?`<span class="ordem-time"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${esc(p.recognitionTime)}</span>`:''}
-          ${p.proofTime?`<span class="ordem-time" style="color:var(--gold)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${esc(p.proofTime)}</span>`:''}
+  // Agrupar por prova (proofTime + proofName)
+  const byProva={};
+  const provaOrder=[];
+  filtered.forEach(p=>{
+    const key=(p.proofTime||'__')+'::'+(p.proofName||'Sem Prova');
+    if(!byProva[key]){byProva[key]=[];provaOrder.push(key);}
+    byProva[key].push(p);
+  });
+
+  const cards=provaOrder.map(key=>{
+    const [pt,pn]=key.split('::');
+    const ps=byProva[key];
+    const label=`${pt==='__'?'':pt+' · '}${pn}`;
+    const cardHtml=ps.map(p=>{
+      const cl=getClient(p.clientId);
+      const horse=getHorse(p.horseId);
+      const fs=filmLabel(p.filmStatus||'aguardando');
+      const contract=getContract(p.contractId);
+      const psl=payLabel(contract?.payStatus||'pendente');
+      return`<div class="ordem-card" style="border-left:3px solid ${fs.color}">
+        <div class="ordem-num-box" data-action="edit-num" data-id="${p.id}" title="Clique para editar número">${esc(p.inscriptionNumber||'—')}</div>
+        <div class="ordem-info">
+          <div class="ordem-client">${esc(cl.name)}</div>
+          <div class="ordem-horse">🐎 ${esc(horse.name)}</div>
+          <div class="ordem-meta">
+            ${contract?billingBadge(contract.billingModel,true):''}
+            ${p.recognitionTime?`<span class="ordem-time"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${esc(p.recognitionTime)}</span>`:''}
+          </div>
+          <div class="entry-badges" style="margin-top:5px">
+            <span class="badge badge-${p.filmStatus||'aguardando'}" style="font-size:10px">${fs.label}</span>
+            <span class="badge badge-${contract?.payStatus||'pendente'}" style="font-size:10px">${psl.label}</span>
+          </div>
+          ${stageBtns(p)}
         </div>
-        <div class="entry-badges" style="margin-top:5px">
-          <span class="badge badge-${p.filmStatus||'aguardando'}" style="font-size:10px">${fs.label}</span>
-          <span class="badge badge-${contract?.payStatus||'pendente'}" style="font-size:10px">${ps.label}</span>
+        <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0">
+          <button class="btn btn-ghost btn-sm" data-action="quick-film" data-id="${p.id}">${IC.film}</button>
+          <button class="btn btn-ghost btn-sm" data-action="open-part" data-id="${p.id}">${IC.edit}</button>
         </div>
-        ${stageBtns(p)}
-      </div>
-      <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0">
-        <button class="btn btn-ghost btn-sm" data-action="quick-film" data-id="${p.id}">${IC.film}</button>
-        <button class="btn btn-ghost btn-sm" data-action="open-part" data-id="${p.id}">${IC.edit}</button>
-      </div>
+      </div>`;
+    }).join('');
+    return`<div style="margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;text-transform:uppercase;margin-bottom:6px;padding:0 2px">${esc(label)} <span style="font-weight:400">(${ps.length})</span></div>
+      <div class="stack">${cardHtml}</div>
     </div>`;
   }).join('');
 
