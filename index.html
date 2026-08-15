@@ -572,12 +572,34 @@ function pageAgora(){
     const cl=getClient(part.clientId);
     const horse=getHorse(part.horseId);
     const time=type==='recog'?part.recognitionTime:part.proofTime;
+    // Cronômetro: 30min antes da prova, conta regressiva
+    let countdownHtml='';
+    if(type==='recog'&&part.proofTime){
+      const nowSec=Math.floor(Date.now()/1000);
+      const b=brNow();
+      const nowMinsBR=b.getUTCHours()*60+b.getUTCMinutes();
+      const nowSecBR=nowMinsBR*60+b.getUTCSeconds();
+      const proofSec=toMins(part.proofTime)*60;
+      const secsLeft=proofSec-nowSecBR;
+      if(secsLeft>0&&secsLeft<=1800){
+        const mm=String(Math.floor(secsLeft/60)).padStart(2,'0');
+        const ss=String(secsLeft%60).padStart(2,'0');
+        countdownHtml=`<div id="recog-countdown" data-secs="${secsLeft}" style="margin:10px 0;padding:10px 14px;background:rgba(192,154,53,.12);border:1.5px solid var(--gold);border-radius:var(--r);display:flex;align-items:center;gap:10px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <div>
+            <div style="font-size:10px;color:var(--gold);font-weight:700;letter-spacing:.06em;text-transform:uppercase">Reconhecimento em</div>
+            <div id="recog-timer" style="font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--gold);line-height:1.1">${mm}:${ss}</div>
+          </div>
+        </div>`;
+      }
+    }
     return`<div>
       <div class="agora-eyebrow ${type}">${type==='recog'?'🔵 Próximo Reconhecimento':'🟡 Próxima Prova'}</div>
       <div class="agora-client">${esc(cl.name)}</div>
       <div class="agora-horse">🐎 ${esc(horse.name)} · Nº ${esc(part.inscriptionNumber||'—')}</div>
       <div class="agora-time">${esc(time||'—')}</div>
       <div class="agora-meta">${esc(part.proofName||'')}${part.category?' · '+esc(part.category):''}</div>
+      ${countdownHtml}
       ${stageBtns(part)}
       <div style="margin-top:8px;display:flex;gap:8px">
         <button class="btn btn-ghost btn-sm" data-action="quick-film" data-id="${part.id}">${IC.film} Status</button>
@@ -1984,6 +2006,25 @@ function handleForm(action,form){
 // BIND AFTER RENDER
 // ═══════════════════════════════════════════════════════════════
 function bindAfter(){
+  // Cronômetro regressivo do reconhecimento (30 min antes da prova)
+  if(window._recogCountdown){clearInterval(window._recogCountdown);window._recogCountdown=null;}
+  const cdEl=document.getElementById('recog-countdown');
+  const timerEl=document.getElementById('recog-timer');
+  if(cdEl&&timerEl){
+    let secs=parseInt(cdEl.dataset.secs)||0;
+    window._recogCountdown=setInterval(()=>{
+      secs--;
+      if(secs<=0){
+        clearInterval(window._recogCountdown);window._recogCountdown=null;
+        render(); // tempo esgotado — avança para próximo reconhecimento
+        return;
+      }
+      const mm=String(Math.floor(secs/60)).padStart(2,'0');
+      const ss=String(secs%60).padStart(2,'0');
+      timerEl.textContent=`${mm}:${ss}`;
+    },1000);
+  }
+
   // Event select
   const evtSel=document.getElementById('evt-select');
   if(evtSel)evtSel.addEventListener('change',()=>{S.eventId=evtSel.value||null;saveDB();render()});
