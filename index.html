@@ -839,7 +839,7 @@ function pageOrdem(){
       <button class="btn btn-primary btn-sm" data-action="open-modal" data-modal="nova-participacao">${IC.plus} Nova</button>
     </div>
     ${days.length>1?dayTabs:''}
-    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">${IC.edit} Toque no número para editar</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:4px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Toque no número para editar</div>
     <div class="stack">${cards||`<div class="empty">${IC.list}<p>Nenhuma participação para este dia.</p></div>`}</div>
   `;
 }
