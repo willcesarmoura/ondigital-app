@@ -571,6 +571,12 @@ function pageMais(){
 // PAGE: AGORA
 // ═══════════════════════════════════════════════════════════════
 function pageAgora(){
+  try{ return _pageAgoraInner(); }
+  catch(e){
+    return`<div class="empty"><p style="color:var(--red);font-size:13px">Erro na página Agora:<br>${esc(String(e))}</p></div>`;
+  }
+}
+function _pageAgoraInner(){
   const parts=getEventParticipations(S.eventId);
   const today=todayISO();
   const now=toMins(nowTime());
@@ -1566,19 +1572,31 @@ function parseFphHtml(html,url){
   const doc=new DOMParser().parseFromString(html,'text/html');
   const fullText=doc.body?doc.body.textContent:'';
 
-  // Prova name and time — scan full text first, then elements
   let provaName='';
   let provaTime='';
 
-  // Search in text nodes for PR.XX pattern
-  const prMatch=fullText.match(/PR\.?\s*\d+[^\n\r]{0,120}/);
-  if(prMatch)provaName=prMatch[0].replace(/\s+/g,' ').trim().slice(0,100);
+  // Prova name: find PR.XX in page text
+  const prMatch=fullText.match(/PR\.?\s*\d+[^\n\r]{0,150}/);
+  if(prMatch)provaName=prMatch[0].replace(/\s+/g,' ').trim().slice(0,120);
 
-  // Time: look for HH:MM pattern (common times 07:00–18:00)
-  const timeMatches=[...fullText.matchAll(/\b(\d{1,2}):(\d{2})\b/g)];
-  for(const tm of timeMatches){
-    const h=parseInt(tm[1]),m=parseInt(tm[2]);
-    if(h>=7&&h<=20&&m>=0&&m<=59){provaTime=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');break;}
+  // Time: look for HH:MM or HHhMM NEAR the PR.XX match (within 500 chars)
+  // This avoids picking up page/session timestamps that appear earlier in the HTML
+  const searchZone=prMatch
+    ? fullText.slice(prMatch.index, prMatch.index+500)
+    : '';
+  const zoneTimeMatch=searchZone.match(/\b(\d{1,2})[h:](\d{2})\b/);
+  if(zoneTimeMatch){
+    const h=parseInt(zoneTimeMatch[1]),m=parseInt(zoneTimeMatch[2]);
+    if(h>=6&&h<=22&&m>=0&&m<=59)
+      provaTime=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
+  }
+  // Fallback: look for "Horário" label anywhere, then first valid HH:MM
+  if(!provaTime){
+    const horMatch=fullText.match(/hor[aá]rio[^\d]{0,10}(\d{1,2})[h:](\d{2})/i);
+    if(horMatch){
+      const h=parseInt(horMatch[1]),m=parseInt(horMatch[2]);
+      if(h>=6&&h<=22)provaTime=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
+    }
   }
 
   // Parse ALL table rows — try both td-only and any cell
@@ -1691,11 +1709,19 @@ function fphDoImportSelected(){
   const checkboxes=document.querySelectorAll('.fph-check:checked');
   if(!checkboxes.length){showToast('Selecione ao menos uma participação','error');return;}
   const today=todayISO();
+  // Build map: provaName key → time from editable input
+  const timeOverrides={};
+  document.querySelectorAll('.fph-time-input').forEach(inp=>{
+    if(inp.value)timeOverrides[inp.dataset.key]=inp.value;
+  });
   let count=0;
   checkboxes.forEach(cb=>{
     const idx=parseInt(cb.dataset.idx);
     const item=window._fphMatchCache[idx];
     if(!item)return;
+    // Use time from editable input if available
+    const provaKey=item.provaName||item.url||'';
+    const provaTime=timeOverrides[provaKey]||item.provaTime||'';
     // Find or create horse
     let horse=db.horses.find(h=>h.clientId===item.client.id&&normFph(h.name)===normFph(item.horseName));
     if(!horse){horse={id:uid(),clientId:item.client.id,name:item.horseName,notes:''};db.horses.push(horse);}
@@ -1705,13 +1731,13 @@ function fphDoImportSelected(){
     );
     if(dup){
       dup.inscriptionNumber=item.inscriptionNumber;
-      dup.proofTime=item.provaTime;
-      dup.recognitionTime=calcRecog(item.provaTime);
+      dup.proofTime=provaTime;
+      dup.recognitionTime=calcRecog(provaTime);
     }else{
       db.participations.push({
         id:uid(),eventId:S.eventId,clientId:item.client.id,horseId:horse.id,contractId:'',
         day:today,proofName:item.provaName,inscriptionNumber:item.inscriptionNumber,
-        category:item.category,proofTime:item.provaTime,recognitionTime:calcRecog(item.provaTime),
+        category:item.category,proofTime:provaTime,recognitionTime:calcRecog(provaTime),
         recognitionOverride:false,filmStatus:'aguardando',
         cameraman:'',materialLink:'',filmNotes:'',checkRecog:false,checkPaddock:false,checkProva:false,
       });
@@ -1721,7 +1747,7 @@ function fphDoImportSelected(){
   saveDB();
   window._fphResults=null;window._fphMatchCache=null;
   showToast(`${count} participação(ões) importada(s)!`);
-  S.page='agenda';render();
+  S.page='agora';render();
 }
 
 window._fphMatchCache=null;
@@ -1758,7 +1784,12 @@ function pageFphImport(){
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border)">
           <div style="flex:1;min-width:0">
             <div style="font-weight:700;font-size:14px">${esc(g.provaName||'Prova desconhecida')}</div>
-            ${g.provaTime?`<div style="font-size:12px;color:var(--amber);margin-top:2px">⏰ ${esc(g.provaTime)}</div>`:''}
+            <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
+              <span style="font-size:11px;color:var(--muted)">⏰ Horário da prova:</span>
+              <input type="time" class="fph-time-input" data-key="${esc(g.provaName||g.items[0]?.url||'')}"
+                value="${esc(g.provaTime||'')}" style="background:var(--surf2);border:1px solid var(--border2);color:${g.provaTime?'var(--amber)':'var(--red)'};border-radius:4px;padding:3px 6px;font-size:13px;width:100px">
+              ${!g.provaTime?'<span style="font-size:11px;color:var(--red)">não encontrado — insira</span>':''}
+            </div>
           </div>
         </div>
         ${g.items.map(item=>`
