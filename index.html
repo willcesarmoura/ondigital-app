@@ -1733,9 +1733,9 @@ function fphDoImportSelected(){
     // Find or create horse
     let horse=db.horses.find(h=>h.clientId===item.client.id&&normFph(h.name)===normFph(item.horseName));
     if(!horse){horse={id:uid(),clientId:item.client.id,name:item.horseName,notes:''};db.horses.push(horse);}
-    // Duplicate check
+    // Duplicate check: mesmo cliente + mesmo número + mesma prova = duplicata
     const dup=db.participations.find(x=>
-      x.eventId===S.eventId&&x.clientId===item.client.id&&x.day===today&&x.horseId===horse.id&&x.proofName===item.provaName
+      x.eventId===S.eventId&&x.clientId===item.client.id&&x.proofName===item.provaName&&x.inscriptionNumber===item.inscriptionNumber
     );
     if(dup){
       dup.inscriptionNumber=item.inscriptionNumber;
@@ -2117,10 +2117,17 @@ function handleForm(action,form){
           }
           if(!rowHorseId){showToast('Selecione um cavalo em todos os dias','error');return;}
           const proofTime=proofTimes[i]||'';
+          const pName=proofNames[i]||'';
+          const pInsc=inscNums[i]||'';
+          // Bloqueia duplicata: mesmo cliente + mesmo número + mesma prova
+          const dupManual=pName&&pInsc&&db.participations.find(x=>
+            x.eventId===S.eventId&&x.clientId===clientId&&x.proofName===pName&&x.inscriptionNumber===pInsc
+          );
+          if(dupManual){showToast(`Nº ${pInsc} já existe na prova "${pName}"— duplicata ignorada`,'error');continue;}
           db.participations.push({
             id:uid(),eventId:S.eventId,clientId,horseId:rowHorseId,contractId,
             day:days[i],proofTime,recognitionTime:calcRecog(proofTime),recognitionOverride:false,
-            proofName:proofNames[i]||'',inscriptionNumber:inscNums[i]||'',category,
+            proofName:pName,inscriptionNumber:pInsc,category,
             filmStatus:'aguardando',cameraman,materialLink,filmNotes,
             checkRecog:false,checkPaddock:false,checkProva:false,
           });
