@@ -1623,19 +1623,33 @@ function parseFphHtml(html,url){
   return{url,provaName,provaTime,participants,error:null};
 }
 
+async function fphFetchUrl(url){
+  const proxies=[
+    `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+  ];
+  let lastErr='Todos os proxies falharam';
+  for(const proxyUrl of proxies){
+    try{
+      const ctrl=new AbortController();
+      const t=setTimeout(()=>ctrl.abort(),28000);
+      const res=await fetch(proxyUrl,{signal:ctrl.signal});
+      clearTimeout(t);
+      if(!res.ok){lastErr='HTTP '+res.status;continue;}
+      return await res.text();
+    }catch(e){lastErr=e.message||String(e);}
+  }
+  throw new Error(lastErr);
+}
+
 async function fphFetchAndParse(urls){
-  const PROXY='https://api.allorigins.win/raw?url=';
   const results=[];
   for(const raw of urls){
     const url=raw.trim();
     if(!url)continue;
     try{
-      const controller=new AbortController();
-      const timer=setTimeout(()=>controller.abort(),18000);
-      const res=await fetch(PROXY+encodeURIComponent(url),{signal:controller.signal});
-      clearTimeout(timer);
-      if(!res.ok)throw new Error('HTTP '+res.status);
-      const html=await res.text();
+      const html=await fphFetchUrl(url);
       results.push(parseFphHtml(html,url));
     }catch(err){
       results.push({url,provaName:'',provaTime:'',participants:[],error:err.message});
