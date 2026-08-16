@@ -1715,7 +1715,8 @@ async function fphDoFetch(){
 function fphDoImportSelected(){
   const checkboxes=document.querySelectorAll('.fph-check:checked');
   if(!checkboxes.length){showToast('Selecione ao menos uma participação','error');return;}
-  const today=todayISO();
+  const dateInput=document.getElementById('fph-import-date');
+  const today=dateInput?.value||todayISO();
   // Build map: provaName key → time from editable input
   const timeOverrides={};
   document.querySelectorAll('.fph-time-input').forEach(inp=>{
@@ -1827,6 +1828,10 @@ function pageFphImport(){
       <div style="font-size:13px;color:var(--muted);margin-bottom:12px">${matched.length} participação(ões) encontrada(s) — selecione as que deseja importar:</div>
       ${provaHtml}
       ${noMatchHtml}
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;background:var(--surf2);border:1px solid var(--border2);border-radius:8px;padding:10px 14px">
+        <span style="font-size:13px;color:var(--muted);white-space:nowrap">📅 Dia da prova:</span>
+        <input type="date" id="fph-import-date" value="${todayISO()}" style="flex:1;background:transparent;border:none;color:var(--amber);font-size:14px;font-weight:700;outline:none">
+      </div>
       <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="fphDoImportSelected()">
         ${IC.check} Importar Selecionados
       </button>`
