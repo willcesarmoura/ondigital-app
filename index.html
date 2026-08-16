@@ -362,20 +362,22 @@ function loadDB(){
   return defaultDB();
 }
 let db=loadDB();
-// Limpa duplicatas que já existam no banco (mesmo cliente + nº + prova)
+// Limpa duplicatas: mesmo evento + cliente + número de inscrição = mesma participação
 (function deduplicateParticipations(){
   const seen={};
   const clean=[];
   for(const p of db.participations){
-    const key=p.proofName&&p.inscriptionNumber
-      ?`${p.eventId||''}::${p.clientId||''}::${p.proofName}::${p.inscriptionNumber}`
+    // Só deduplica quando há número de inscrição definido
+    const key=p.inscriptionNumber
+      ?`${p.eventId||''}::${p.clientId||''}::${p.inscriptionNumber}`
       :null;
     if(!key){clean.push(p);continue;}
     const prev=seen[key];
     if(!prev){seen[key]=p;clean.push(p);}
     else{
-      const progress=x=>(x.checkRecog?4:0)+(x.checkPaddock?2:0)+(x.checkProva?1:0)+(x.filmStatus!=='aguardando'?8:0);
-      if(progress(p)>progress(prev)){
+      // Mantém o com mais dados (proofName, proofTime, progresso de status)
+      const score=x=>(x.proofName?16:0)+(x.proofTime?8:0)+(x.checkRecog?4:0)+(x.checkPaddock?2:0)+(x.checkProva?1:0)+(x.filmStatus!=='aguardando'?32:0);
+      if(score(p)>score(prev)){
         clean.splice(clean.indexOf(prev),1);
         seen[key]=p;clean.push(p);
       }
@@ -1759,9 +1761,9 @@ function fphDoImportSelected(){
     // Find or create horse
     let horse=db.horses.find(h=>h.clientId===item.client.id&&normFph(h.name)===normFph(item.horseName));
     if(!horse){horse={id:uid(),clientId:item.client.id,name:item.horseName,notes:''};db.horses.push(horse);}
-    // Duplicate check: mesmo cliente + mesmo número + mesma prova = duplicata
+    // Duplicate check: mesmo evento + cliente + número = mesma participação
     const dup=db.participations.find(x=>
-      x.eventId===S.eventId&&x.clientId===item.client.id&&x.proofName===item.provaName&&x.inscriptionNumber===item.inscriptionNumber
+      x.eventId===S.eventId&&x.clientId===item.client.id&&x.inscriptionNumber===item.inscriptionNumber
     );
     if(dup){
       dup.inscriptionNumber=item.inscriptionNumber;
@@ -2145,9 +2147,9 @@ function handleForm(action,form){
           const proofTime=proofTimes[i]||'';
           const pName=proofNames[i]||'';
           const pInsc=inscNums[i]||'';
-          // Bloqueia duplicata: mesmo cliente + mesmo número + mesma prova
-          const dupManual=pName&&pInsc&&db.participations.find(x=>
-            x.eventId===S.eventId&&x.clientId===clientId&&x.proofName===pName&&x.inscriptionNumber===pInsc
+          // Bloqueia duplicata: mesmo evento + cliente + número de inscrição
+          const dupManual=pInsc&&db.participations.find(x=>
+            x.eventId===S.eventId&&x.clientId===clientId&&x.inscriptionNumber===pInsc
           );
           if(dupManual){showToast(`Nº ${pInsc} já existe na prova "${pName}"— duplicata ignorada`,'error');continue;}
           db.participations.push({
