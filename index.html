@@ -1,8 +1,8 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <link rel="manifest" href="./manifest.json">
@@ -22,11 +22,11 @@ html,body{height:100%;overflow:hidden;-webkit-tap-highlight-color:transparent}
 }
 body{font-family:-apple-system,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.4}
 #root{display:flex;flex-direction:column;height:100vh;height:100dvh}
-.hdr{height:var(--header);background:var(--surf);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 12px;gap:10px;flex-shrink:0;z-index:50}
+.hdr{height:var(--header);background:var(--surf);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 12px;gap:10px;flex-shrink:0;z-index:50;padding-top:env(safe-area-inset-top);box-sizing:border-box}
 .layout{display:flex;flex:1;overflow:hidden}
 .sidebar{width:var(--sidebar);background:var(--surf);border-right:1px solid var(--border);flex-shrink:0;overflow-y:auto;padding:8px 0;display:none;flex-direction:column}
-.content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px}
-.bottom-nav{height:var(--bottom);background:var(--surf);border-top:1px solid var(--border);display:flex;flex-shrink:0}
+.content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px;padding-bottom:calc(var(--bottom) + env(safe-area-inset-bottom) + 14px)}
+.bottom-nav{height:var(--bottom);background:var(--surf);border-top:1px solid var(--border);display:flex;flex-shrink:0;padding-bottom:env(safe-area-inset-bottom);box-sizing:border-box}
 @media(min-width:768px){.sidebar{display:flex}.bottom-nav{display:none}.content{padding:20px 24px}}
 .hdr-logo{font-weight:700;font-size:15px;color:var(--gold);letter-spacing:.04em;white-space:nowrap}
 .hdr-logo span{color:var(--muted);font-weight:400}
@@ -100,7 +100,7 @@ body{font-family:-apple-system,'Segoe UI',system-ui,sans-serif;background:var(--
 .modal-hdr h3{font-size:15px;font-weight:700}
 .modal-body{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 18px;flex:1}
 .modal-footer{padding:12px 18px;padding-bottom:max(12px,env(safe-area-inset-bottom));border-top:1px solid var(--border);display:flex;gap:10px;flex-shrink:0}
-.bottom-nav{padding-bottom:env(safe-area-inset-bottom)}
+
 .modal-footer .btn{flex:1;justify-content:center}
 .list-item{display:flex;align-items:center;gap:10px;padding:11px 12px;background:var(--surf);border:1px solid var(--border);border-radius:var(--r);cursor:pointer;transition:border-color .15s,background .15s;text-align:left;width:100%}
 .list-item:hover{border-color:var(--border2);background:var(--surf2)}
@@ -143,7 +143,7 @@ body{font-family:-apple-system,'Segoe UI',system-ui,sans-serif;background:var(--
 .filter-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
 .ftab{padding:5px 11px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border2);background:var(--surf2);color:var(--muted);transition:all .15s;white-space:nowrap}
 .ftab.active{background:rgba(192,154,53,.15);border-color:var(--gold-d);color:var(--gold)}
-.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--surf2);border:1px solid var(--border2);color:var(--text);padding:10px 16px;border-radius:var(--r);font-size:13px;font-weight:500;z-index:300;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.toast{position:fixed;bottom:calc(var(--bottom) + env(safe-area-inset-bottom) + 12px);left:50%;transform:translateX(-50%);background:var(--surf2);border:1px solid var(--border2);color:var(--text);padding:10px 16px;border-radius:var(--r);font-size:13px;font-weight:500;z-index:300;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.4)}
 .toast.success{border-color:var(--green);background:var(--green-bg)}.toast.error{border-color:var(--red);background:var(--red-bg)}
 @media(min-width:768px){.toast{bottom:20px}}
 .fin-bar-wrap{display:flex;flex-direction:column;gap:8px}
@@ -431,7 +431,7 @@ const S={
   _prefillClient:null,_prefillDespCat:null,
 };
 function setPage(p,sub=''){S.page=p;S.sub=sub;S.search='';render()}
-function closeModal(){S.modal=null;S.editId=null;render()}
+function closeModal(){S.modal=null;S.editId=null;S._prefillClient=null;render()}
 function showToast(msg,type='success'){
   S.toast={msg,type};clearTimeout(S.toastTimer);
   S.toastTimer=setTimeout(()=>{S.toast=null;renderToast()},2800);renderToast();
@@ -506,7 +506,6 @@ function renderSidebar(){
     {id:'clientes',icon:'users',    label:'Clientes'},
     {id:'financas',icon:'dollar',   label:'Finanças'},
     {id:'despesas',icon:'trending', label:'Despesas'},
-    {id:'fph',     icon:'globe',    label:'FPH Sync'},
     {id:'config',  icon:'settings', label:'Configurações'},
   ];
   return`<nav class="sidebar"><div class="sb-nav">
@@ -521,6 +520,7 @@ function renderBottomNav(){
     {id:'agenda',  icon:'calendar', label:'Agenda'},
     {id:'clientes',icon:'users',    label:'Clientes'},
     {id:'financas',icon:'dollar',   label:'Finanças'},
+    {id:'mais',    icon:'menu',     label:'Mais'},
   ];
   return`<nav class="bottom-nav">
     ${nav.map(n=>`<button class="bn-item${S.page===n.id?' active':''}" data-action="nav" data-page="${n.id}">${IC[n.icon]}<span>${n.label}</span></button>`).join('')}
@@ -534,12 +534,35 @@ function renderPage(){
     case 'ordem':    return pageOrdem();
     case 'agenda':   return pageAgenda();
     case 'clientes': return pageClientes();
-    case 'fph':      return pageFPH();
     case 'financas': return pageFinancas();
     case 'despesas': return pageDespesas();
     case 'config':   return pageConfig();
+    case 'mais':     return pageMais();
     default:         return pageAgora();
   }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PAGE: MAIS
+// ═══════════════════════════════════════════════════════════════
+function pageMais(){
+  const items=[
+    {id:'despesas',label:'Despesas',sub:'Controle de custos',icon:IC.dollar},
+    {id:'config',label:'Configurações',sub:'Preferências do app',icon:IC.settings},
+  ];
+  return`<div class="sec-hdr"><div class="sec-title">Mais opções</div></div>
+  <div class="stack">
+    ${items.map(it=>`<div class="card" style="cursor:pointer;padding:16px" data-action="set-page" data-page="${it.id}">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div style="width:44px;height:44px;border-radius:var(--r);background:var(--surf2);display:flex;align-items:center;justify-content:center;flex-shrink:0">${it.icon}</div>
+        <div>
+          <div style="font-size:16px;font-weight:700">${it.label}</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:2px">${it.sub}</div>
+        </div>
+        <svg style="margin-left:auto;color:var(--muted)" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+    </div>`).join('')}
+  </div>`;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -575,7 +598,6 @@ function pageAgora(){
     // Cronômetro: 30min antes da prova, conta regressiva
     let countdownHtml='';
     if(type==='recog'&&part.proofTime){
-      const nowSec=Math.floor(Date.now()/1000);
       const b=brNow();
       const nowMinsBR=b.getUTCHours()*60+b.getUTCMinutes();
       const nowSecBR=nowMinsBR*60+b.getUTCSeconds();
@@ -649,143 +671,6 @@ function pageAgora(){
     </div>
     <div class="stack">${timeline}</div>
   `;
-}
-
-// ═══════════════════════════════════════════════════════════════
-// PAGE: FPH SYNC
-// ═══════════════════════════════════════════════════════════════
-function pageFPH(){
-  const syncData=window._fphData||{};
-  const resultData=window._fphResults||{};
-  const clientNames=db.clients.map(c=>c.name.trim().toLowerCase());
-
-  // Bookmarklet: Ordem de Entrada (clique único)
-  const bkSync=`(function(){var rows=document.querySelectorAll('table tr'),p=[];rows.forEach(function(tr){var t=tr.querySelectorAll('td');if(t.length<4)return;var n=t[0].textContent.trim();if(!n.match(/^\\d+\\s*\\xb0/))return;p.push({order:parseInt(n),name:t[1].textContent.trim(),horse:t[2].textContent.trim().split(/\\d{2}\\/\\d{2}\\/\\d{4}/)[0].trim(),cat:(t[4]||t[3]).textContent.trim().split('\\n')[0].trim()});});var m=location.href.match(/ID=(\\d+)/i),id=m?m[1]:'unknown';fetch('https://firestore.googleapis.com/v1/projects/on-digital-322f4/databases/(default)/documents/fph_sync/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields:{participants:{stringValue:JSON.stringify(p)},url:{stringValue:location.href},provaId:{stringValue:id},ts:{integerValue:''+Date.now()}}})}).then(function(){alert('FPH Sync: '+p.length+' participantes enviados! (Prova ID '+id+')')}).catch(function(e){alert('Erro: '+e.message)});})();`;
-
-  // Bookmarklet: Resultados ao vivo (auto-atualiza a cada 30s)
-  const bkResult=`(function(){if(window._odR){clearInterval(window._odR);window._odR=null;document.getElementById('_od_f')?.remove();return;}function sync(){var rows=document.querySelectorAll('table tr'),data=[];rows.forEach(function(tr){var tds=tr.querySelectorAll('td');if(tds.length<5)return;var pos=tds[0].textContent.trim();if(!pos.match(/^\\d+/))return;var name=tds[1].textContent.trim().replace(/\\s+/g,' ');var horse=tds[2].textContent.trim().replace(/\\s+/g,' ').split(/\\d{2}\\/\\d{2}\\/\\d{4}/)[0].trim();var faults=tds[5]?tds[5].textContent.trim():'';var time=tds[6]?tds[6].textContent.trim():'';data.push({pos:parseInt(pos),name:name,horse:horse,faults:faults,time:time});});var m=location.href.match(/ID=(\\d+)/i),id=m?m[1]:'unknown';fetch('https://firestore.googleapis.com/v1/projects/on-digital-322f4/databases/(default)/documents/fph_results/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields:{results:{stringValue:JSON.stringify(data)},url:{stringValue:location.href},provaId:{stringValue:id},ts:{integerValue:''+Date.now()}}})}).then(function(){var el=document.getElementById('_od_f');if(el)el.innerHTML='\\uD83D\\uDFE2 ON Digital<br><small>'+data.length+' posic\\u0327\\u00F5es \\u2022 '+new Date().toLocaleTimeString('pt-BR')+'</small>';}).catch(function(){var el=document.getElementById('_od_f');if(el)el.innerHTML='\\uD83D\\uDD34 ON Digital<br><small>erro</small>';});}var div=document.createElement('div');div.id='_od_f';div.style.cssText='position:fixed;bottom:16px;right:16px;background:#C09A35;color:#000;padding:10px 14px;border-radius:10px;font-size:12px;font-weight:700;z-index:99999;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.5);text-align:center;line-height:1.5';div.innerHTML='\\uD83D\\uDFE1 ON Digital<br><small>Iniciando...</small>';div.title='Clique para parar';div.onclick=function(){clearInterval(window._odR);window._odR=null;div.remove();};document.body.appendChild(div);sync();window._odR=setInterval(sync,30000);})();`;
-
-  const bkSyncHref='javascript:'+encodeURIComponent(bkSync);
-  const bkResultHref='javascript:'+encodeURIComponent(bkResult);
-
-  // Results section
-  const resultIds=Object.keys(resultData);
-
-  return`<div style="max-width:760px">
-    <div style="margin-bottom:18px">
-      <h2 style="font-size:18px;font-weight:700;color:var(--text)">FPH Sync</h2>
-      <p style="font-size:12px;color:var(--muted);margin-top:2px">Sincronize participantes e resultados ao vivo da Federação Paulista de Hipismo</p>
-    </div>
-
-    <!-- BOOKMARKLETS -->
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-title">Bookmarklets — arraste para a barra de favoritos</div>
-      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px">
-        <div>
-          <a href="${bkSyncHref}" onclick="return false;" draggable="true"
-             ondragstart="event.dataTransfer.setData('text/uri-list',this.href);event.dataTransfer.setData('text/plain',this.href);"
-             style="display:inline-flex;align-items:center;gap:6px;padding:9px 14px;background:var(--gold);color:#000;border-radius:var(--r-sm);font-size:12px;font-weight:700;text-decoration:none;cursor:grab;user-select:none">
-            ${IC.globe} Ordem de Entrada
-          </a>
-          <div style="font-size:10px;color:var(--muted);margin-top:4px">Use em fph.com.br/OrdemEntrada — clique uma vez</div>
-        </div>
-        <div>
-          <a href="${bkResultHref}" onclick="return false;" draggable="true"
-             ondragstart="event.dataTransfer.setData('text/uri-list',this.href);event.dataTransfer.setData('text/plain',this.href);"
-             style="display:inline-flex;align-items:center;gap:6px;padding:9px 14px;background:var(--green);color:#000;border-radius:var(--r-sm);font-size:12px;font-weight:700;text-decoration:none;cursor:grab;user-select:none">
-            ${IC.list} Resultados ao vivo
-          </a>
-          <div style="font-size:10px;color:var(--muted);margin-top:4px">Use em fph.com.br/Resultados — atualiza a cada 30s</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- RESULTADOS AO VIVO -->
-    <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:8px">
-      ${IC.list} Resultados ao vivo
-      ${resultIds.length?`<span style="font-size:10px;font-weight:600;background:var(--green-bg);color:var(--green);padding:2px 8px;border-radius:20px">LIVE</span>`:''}
-    </div>
-    ${resultIds.length===0?`<div class="card" style="margin-bottom:16px"><p style="font-size:13px;color:var(--muted);text-align:center;padding:12px 0">Nenhum resultado ainda.<br>Use o bookmarklet <strong>Resultados ao vivo</strong> na página de resultados da FPH.</p></div>`:
-    resultIds.map(rid=>{
-      const prova=resultData[rid];
-      const results=prova.results||[];
-      const ts=prova.ts?new Date(Number(prova.ts)).toLocaleTimeString('pt-BR'):'—';
-      const finalized=results.filter(r=>r.faults||r.time).length;
-      return`<div class="card" style="margin-bottom:12px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <div>
-            <div style="font-size:13px;font-weight:700">Prova ${esc(rid)}</div>
-            <div style="font-size:11px;color:var(--muted)">Atualizado: ${ts} · ${finalized}/${results.length} finalizados</div>
-          </div>
-          <span style="font-size:10px;font-weight:600;background:var(--green-bg);color:var(--green);padding:2px 8px;border-radius:20px">🟢 AO VIVO</span>
-        </div>
-        <div style="overflow-x:auto">
-          <table style="width:100%;font-size:12px;border-collapse:collapse">
-            <thead><tr style="color:var(--muted);border-bottom:1px solid var(--border)">
-              <th style="text-align:left;padding:4px 6px;width:28px">Pos</th>
-              <th style="text-align:left;padding:4px 6px">Competidor</th>
-              <th style="text-align:left;padding:4px 6px">Cavalo</th>
-              <th style="text-align:right;padding:4px 6px">Faltas</th>
-              <th style="text-align:right;padding:4px 6px">Tempo</th>
-            </tr></thead>
-            <tbody>${results.map(r=>{
-              const nameLC=r.name.toLowerCase();
-              const isClient=clientNames.some(cn=>cn&&nameLC.includes(cn));
-              const bg=isClient?'background:rgba(192,154,53,.08);':'';
-              const nameStyle=isClient?'color:var(--gold);font-weight:700':'font-weight:500';
-              const shortName=r.name.length>35?r.name.substring(0,35)+'…':r.name;
-              const shortHorse=r.horse.length>25?r.horse.substring(0,25)+'…':r.horse;
-              return`<tr style="border-bottom:1px solid var(--border);${bg}">
-                <td style="padding:5px 6px;color:var(--muted);font-variant-numeric:tabular-nums">${r.pos}º</td>
-                <td style="padding:5px 6px;${nameStyle}" title="${esc(r.name)}">${esc(shortName)}${isClient?' ⭐':''}</td>
-                <td style="padding:5px 6px;color:var(--muted)" title="${esc(r.horse)}">${esc(shortHorse)}</td>
-                <td style="padding:5px 6px;text-align:right;color:${r.faults&&r.faults!=='0(0+0)'?'var(--red)':'var(--green)'}">${r.faults||'—'}</td>
-                <td style="padding:5px 6px;text-align:right;font-variant-numeric:tabular-nums">${r.time||'—'}</td>
-              </tr>`;
-            }).join('')}</tbody>
-          </table>
-        </div>
-      </div>`;
-    }).join('')}
-
-    <!-- ORDEM DE ENTRADA -->
-    <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;margin-top:6px;display:flex;align-items:center;gap:8px">
-      ${IC.list} Ordem de Entrada
-    </div>
-    ${Object.keys(syncData).length===0?`<div class="card"><p style="font-size:13px;color:var(--muted);text-align:center;padding:12px 0">Nenhuma prova sincronizada.<br>Use o bookmarklet <strong>Ordem de Entrada</strong> no site da FPH.</p></div>`:
-    Object.keys(syncData).map(pid=>{
-      const prova=syncData[pid];
-      const parts=prova.participants||[];
-      const ts=prova.ts?new Date(Number(prova.ts)).toLocaleString('pt-BR'):'—';
-      return`<div class="card" style="margin-bottom:12px">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px">
-          <div>
-            <div style="font-size:13px;font-weight:700">Prova ${esc(pid)}</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:2px">Sinc: ${ts} · ${parts.length} participantes</div>
-          </div>
-          <button class="btn btn-primary btn-sm" style="flex-shrink:0" data-action="import-fph-prova" data-provaid="${esc(pid)}">${IC.download} Importar</button>
-        </div>
-        <div style="overflow-x:auto">
-          <table style="width:100%;font-size:12px;border-collapse:collapse">
-            <thead><tr style="color:var(--muted);border-bottom:1px solid var(--border)">
-              <th style="text-align:left;padding:4px 6px;width:28px">#</th>
-              <th style="text-align:left;padding:4px 6px">Competidor</th>
-              <th style="text-align:left;padding:4px 6px">Cavalo</th>
-              <th style="text-align:left;padding:4px 6px">Categoria</th>
-            </tr></thead>
-            <tbody>${parts.slice(0,15).map(p=>`<tr style="border-bottom:1px solid var(--border)">
-              <td style="padding:5px 6px;color:var(--muted)">${p.order}</td>
-              <td style="padding:5px 6px;font-weight:500">${esc(p.name)}</td>
-              <td style="padding:5px 6px;color:var(--muted)">${esc(p.horse)}</td>
-              <td style="padding:5px 6px;color:var(--teal);font-size:11px">${esc(p.cat)}</td>
-            </tr>`).join('')}
-            ${parts.length>15?`<tr><td colspan="4" style="padding:6px;color:var(--muted);font-size:11px">...e mais ${parts.length-15} participantes</td></tr>`:''}
-            </tbody>
-          </table>
-        </div>
-      </div>`;
-    }).join('')}
-  </div>`;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1219,7 +1104,6 @@ function renderModal(){
     case 'ver-cliente':        return modalClient(S.editId);
     case 'add-horse':          return modalAddHorse(S._horseClient);
     case 'novo-cliente':       return modalNovoCliente();
-    case 'fph-import':         return modalFphImport();
     case 'editar-cliente':     return modalEditCliente(S.editId);
     default: return'';
   }
@@ -1542,41 +1426,6 @@ function modalNovoCliente(){
   </div>`;
 }
 
-function modalFphImport(){
-  const provaId=S._fphProvaId;
-  const prova=(window._fphData||{})[provaId];
-  if(!prova)return'';
-  const parts=prova.participants||[];
-  return`<div class="modal" id="modal" style="max-width:560px">
-    <div class="modal-hdr"><h3>Selecionar Clientes — Prova ${esc(provaId)}</h3><button class="hdr-btn" data-action="close-modal">${IC.x}</button></div>
-    <div class="modal-body" style="padding:0">
-      <div style="padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
-        <div style="position:relative;flex:1">
-          <span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--muted);width:16px;height:16px;display:flex;pointer-events:none">${IC.search}</span>
-          <input id="fph-search" placeholder="Buscar por nome..." style="width:100%;padding:7px 10px 7px 32px;background:var(--surf2);border:1px solid var(--border2);border-radius:var(--r-sm);color:var(--text);font-size:13px;outline:none" oninput="fphFilterList(this.value)">
-        </div>
-        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);cursor:pointer;white-space:nowrap">
-          <input type="checkbox" id="fph-chk-all" onchange="fphToggleAll(this.checked)"> Todos
-        </label>
-      </div>
-      <div id="fph-list" style="max-height:400px;overflow-y:auto">
-        ${parts.map((p,i)=>`<label id="fph-row-${i}" style="display:flex;align-items:center;gap:12px;padding:10px 18px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s" onmouseover="this.style.background='var(--surf2)'" onmouseout="this.style.background=''">
-          <input type="checkbox" class="fph-chk" data-idx="${i}" style="width:16px;height:16px;accent-color:var(--gold);flex-shrink:0">
-          <div style="flex:1;min-width:0">
-            <div style="font-size:13px;font-weight:600;color:var(--text)">${esc(p.name)}</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:1px">${esc(p.horse)}${p.cat?' · <span style="color:var(--teal)">'+esc(p.cat)+'</span>':''}</div>
-          </div>
-          <div style="font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums">#${p.order}</div>
-        </label>`).join('')}
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" data-action="close-modal">Cancelar</button>
-      <button class="btn btn-primary" onclick="confirmFphImport('${esc(provaId)}')">${IC.download} Importar selecionados</button>
-    </div>
-  </div>`;
-}
-
 function modalEditCliente(clientId){
   const c=db.clients.find(x=>x.id===clientId);
   if(!c)return'';
@@ -1714,6 +1563,8 @@ function handleAction(action,el){
       S.modal=el.dataset.modal;S.editId=el.dataset.editId||null;render();break;
     case 'close-modal':
       closeModal();break;
+    case 'set-page':
+      S.page=el.dataset.page;render();break;
     case 'filter-day':
       S.filterDay=el.dataset.val;render();break;
     case 'filter-film':
@@ -1827,12 +1678,6 @@ function handleAction(action,el){
       db.team=db.team.filter(t=>t.id!==id);saveDB();showToast('Membro removido');render();break;
     case 'del-equip':
       db.equipment=db.equipment.filter(e=>e.id!==id);saveDB();showToast('Equipamento removido');render();break;
-    case 'import-fph-prova':{
-      const provaId=el.dataset.provaid;
-      const prova=(window._fphData||{})[provaId];
-      if(!prova||!prova.participants||!prova.participants.length){showToast('Prova não encontrada','error');break;}
-      if(!S.eventId){showToast('Selecione um evento primeiro','error');break;}
-      S._fphProvaId=provaId;S.modal='fph-import';render();break;}
     case 'del-client':{
       const client=db.clients.find(c=>c.id===id);
       if(!client)break;
@@ -2085,7 +1930,12 @@ function bindAfter(){
 
   // Search
   document.querySelectorAll('[data-change="search"]').forEach(el=>{
-    el.addEventListener('input',e=>{S.search=e.target.value;render()});
+    el.addEventListener('input',e=>{
+      const v=e.target.value;const id=el.id;
+      S.search=v;render();
+      const restored=document.getElementById(id);
+      if(restored){restored.focus();restored.setSelectionRange(v.length,v.length);}
+    });
   });
 
   // Horse rows in "Novo Cliente" modal
@@ -2178,7 +2028,7 @@ document.addEventListener('submit',e=>{
 // ═══════════════════════════════════════════════════════════════
 // CLOCK
 // ═══════════════════════════════════════════════════════════════
-setInterval(()=>{const el=document.getElementById('clock');if(el)el.textContent=nowTime()},15000);
+setInterval(()=>{const el=document.getElementById('clock');if(el)el.textContent=nowTime()},5000);
 
 // ═══════════════════════════════════════════════════════════════
 // AUTO STATUS — reconhecimento
@@ -2194,7 +2044,7 @@ function autoUpdateStatuses(){
     if(p.filmStatus!=='aguardando')return;
     if(p.recognitionTime&&toMins(p.recognitionTime)<=now){p.filmStatus='reconhecimento';changed=true;}
   });
-  if(changed){saveDB();render();}
+  if(changed){saveDB();if(!S.modal)render();}
 }
 setInterval(autoUpdateStatuses,30000);
 autoUpdateStatuses();
@@ -2219,44 +2069,6 @@ function importJSON(){
 }
 
 // ═══════════════════════════════════════════════════════════════
-// FPH IMPORT HELPERS
-// ═══════════════════════════════════════════════════════════════
-function fphFilterList(q){
-  q=q.toLowerCase().trim();
-  document.querySelectorAll('#fph-list label').forEach(row=>{
-    const txt=row.textContent.toLowerCase();
-    row.style.display=(!q||txt.includes(q))?'':'none';
-  });
-}
-function fphToggleAll(checked){
-  document.querySelectorAll('#fph-list .fph-chk').forEach(chk=>{
-    if(chk.closest('label').style.display!=='none')chk.checked=checked;
-  });
-}
-function confirmFphImport(provaId){
-  const prova=(window._fphData||{})[provaId];
-  if(!prova)return;
-  const allParts=prova.participants||[];
-  const selected=[...document.querySelectorAll('.fph-chk:checked')].map(chk=>allParts[parseInt(chk.dataset.idx)]).filter(Boolean);
-  if(!selected.length){showToast('Selecione ao menos um participante','error');return;}
-  let created=0,parts=0;
-  selected.forEach(p=>{
-    let client=db.clients.find(c=>c.name.trim().toLowerCase()===p.name.trim().toLowerCase());
-    if(!client){client={id:uid(),name:p.name.trim(),phone:'',email:'',notes:''};db.clients.push(client);created++;}
-    let horse=db.horses.find(h=>h.clientId===client.id&&h.name.trim().toLowerCase()===p.horse.trim().toLowerCase());
-    if(!horse&&p.horse){horse={id:uid(),clientId:client.id,name:p.horse.trim()};db.horses.push(horse);}
-    const already=db.participations.find(x=>x.eventId===S.eventId&&x.clientId===client.id&&x.day===todayISO());
-    if(!already){
-      db.participations.push({id:uid(),eventId:S.eventId,clientId:client.id,horseId:horse?.id||null,
-        inscriptionNumber:String(p.order),day:todayISO(),time:'',recognitionTime:'',
-        filmStatus:'aguardando',payStatus:'pendente',notes:p.cat||''});
-      parts++;
-    }
-  });
-  saveDB();closeModal();showToast(`${created} clientes novos · ${parts} participações criadas`);render();
-}
-
-// ═══════════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════════
 render();
@@ -2274,38 +2086,6 @@ try{
   if(!firebase.apps.length)firebase.initializeApp(firebaseConfig);
   window._fsDb=firebase.firestore();
   // Empurra dados locais se Firestore estiver vazio; senão, ouve atualizações em tempo real
-  // Listen to FPH sync collection (Ordem de Entrada)
-  window._fphData={};
-  window._fsDb.collection('fph_sync').onSnapshot(snap=>{
-    snap.forEach(doc=>{
-      const d=doc.data();
-      window._fphData[doc.id]={
-        participants:JSON.parse(d.participants||'[]'),
-        url:d.url||'',
-        provaId:d.provaId||doc.id,
-        ts:d.ts||0
-      };
-    });
-    if(S.page==='fph')render();
-    else if(snap.docChanges().some(c=>c.type!=='removed'))showToast('Ordem de Entrada FPH atualizada!');
-  },err=>console.warn('FPH sync error',err));
-
-  // Listen to FPH results collection (Resultados ao vivo)
-  window._fphResults={};
-  window._fsDb.collection('fph_results').onSnapshot(snap=>{
-    snap.forEach(doc=>{
-      const d=doc.data();
-      window._fphResults[doc.id]={
-        results:JSON.parse(d.results||'[]'),
-        url:d.url||'',
-        provaId:d.provaId||doc.id,
-        ts:d.ts||0
-      };
-    });
-    if(S.page==='fph')render();
-    else if(snap.docChanges().some(c=>c.type!=='removed'))showToast('Resultados FPH atualizados ao vivo!');
-  },err=>console.warn('FPH results error',err));
-
   window._fsDb.collection('ondigital').doc('data').onSnapshot(snap=>{
     if(!snap.exists){
       window._fsDb.collection('ondigital').doc('data').set(db);
