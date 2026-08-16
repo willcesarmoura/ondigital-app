@@ -362,6 +362,30 @@ function loadDB(){
   return defaultDB();
 }
 let db=loadDB();
+// Limpa duplicatas que já existam no banco (mesmo cliente + nº + prova)
+(function deduplicateParticipations(){
+  const seen={};
+  const clean=[];
+  for(const p of db.participations){
+    const key=p.proofName&&p.inscriptionNumber
+      ?`${p.eventId||''}::${p.clientId||''}::${p.proofName}::${p.inscriptionNumber}`
+      :null;
+    if(!key){clean.push(p);continue;}
+    const prev=seen[key];
+    if(!prev){seen[key]=p;clean.push(p);}
+    else{
+      const progress=x=>(x.checkRecog?4:0)+(x.checkPaddock?2:0)+(x.checkProva?1:0)+(x.filmStatus!=='aguardando'?8:0);
+      if(progress(p)>progress(prev)){
+        clean.splice(clean.indexOf(prev),1);
+        seen[key]=p;clean.push(p);
+      }
+    }
+  }
+  if(clean.length<db.participations.length){
+    db.participations=clean;
+    try{localStorage.setItem(STORAGE_KEY,JSON.stringify(db));}catch(e){}
+  }
+})();
 let _lastSaved='';
 function saveDB(){
   db._ts=Date.now();
