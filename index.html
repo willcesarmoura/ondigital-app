@@ -580,15 +580,22 @@ function _pageAgoraInner(){
   const parts=getEventParticipations(S.eventId);
   const today=todayISO();
   const now=toMins(nowTime());
-  const sorted=parts.filter(p=>p.proofTime).sort((a,b)=>toMins(a.proofTime)-toMins(b.proofTime));
-  const todayParts=sorted.filter(p=>!p.day||p.day===today);
 
+  // Todas as participações de hoje — mesmo sem horário
+  const todayParts=parts
+    .filter(p=>!p.day||p.day===today)
+    .sort((a,b)=>{
+      if(a.proofTime&&!b.proofTime)return -1;
+      if(!a.proofTime&&b.proofTime)return 1;
+      return toMins(a.proofTime||'99:99')-toMins(b.proofTime||'99:99');
+    });
+
+  // "Próximo" só conta participações COM horário definido
   const pendingRecog=todayParts.filter(p=>{
-    // Mantém na fila até proofTime passar (não checkRecog) — countdown termina nesse momento
-    return toMins(p.proofTime)>=now&&!p.checkRecog&&(p.filmStatus==='aguardando'||p.filmStatus==='reconhecimento');
+    return p.proofTime&&toMins(p.proofTime)>=now&&!p.checkRecog&&(p.filmStatus==='aguardando'||p.filmStatus==='reconhecimento');
   });
   const nextRecog=pendingRecog[0]||null;
-  const pendingProva=todayParts.filter(p=>toMins(p.proofTime)>=now&&p.filmStatus!=='entregue'&&p.filmStatus!=='nao_filmado');
+  const pendingProva=todayParts.filter(p=>p.proofTime&&toMins(p.proofTime)>=now&&p.filmStatus!=='entregue'&&p.filmStatus!=='nao_filmado');
   const nextProva=pendingProva[0]||null;
 
   const alerts=[];
