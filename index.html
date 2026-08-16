@@ -538,6 +538,7 @@ function renderPage(){
     case 'despesas': return pageDespesas();
     case 'config':   return pageConfig();
     case 'mais':     return pageMais();
+    case 'fph-import': return pageFphImport();
     default:         return pageAgora();
   }
 }
@@ -547,6 +548,7 @@ function renderPage(){
 // ═══════════════════════════════════════════════════════════════
 function pageMais(){
   const items=[
+    {id:'fph-import',label:'Importar da FPH',sub:'Buscar participações pelo site',icon:IC.globe},
     {id:'despesas',label:'Despesas',sub:'Controle de custos',icon:IC.dollar},
     {id:'config',label:'Configurações',sub:'Preferências do app',icon:IC.settings},
   ];
@@ -1547,6 +1549,269 @@ function modalClient(clientId){
       <button class="btn btn-primary" data-action="new-part-for-client" data-id="${clientId}">${IC.plus} Nova Participação</button>
     </div>
   </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FPH IMPORT
+// ═══════════════════════════════════════════════════════════════
+window._fphResults=null;
+window._fphLoading=false;
+
+function normFph(s){
+  return String(s).toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ').trim();
+}
+
+function parseFphHtml(html,url){
+  const doc=new DOMParser().parseFromString(html,'text/html');
+
+  // Prova name — scan all elements for PR.XX pattern
+  let provaName='';
+  let provaTime='';
+  const allEls=doc.querySelectorAll('h1,h2,h3,h4,span,label,td,th,b,strong,p,div');
+  for(const el of allEls){
+    const t=el.childNodes.length===1&&el.childNodes[0].nodeType===3
+      ?el.textContent.trim()
+      :'';
+    if(!t)continue;
+    if(/PR\.\s*\d+/.test(t)&&t.length<300&&!provaName){
+      provaName=t.replace(/\s+/g,' ').trim();
+    }
+    // Time pattern "HH:MM" or "HHhMM"
+    if(!provaTime){
+      const tm=t.match(/\b(\d{1,2})[h:](\d{2})\b/);
+      if(tm){
+        const h=parseInt(tm[1]),m=parseInt(tm[2]);
+        if(h>=0&&h<=23&&m>=0&&m<=59)
+          provaTime=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
+      }
+    }
+  }
+
+  // Fallback: search full text
+  if(!provaName){
+    const fullText=doc.body?doc.body.textContent:'';
+    const m=fullText.match(/PR\.\s*\d+[^\n<]{0,80}/);
+    if(m)provaName=m[0].replace(/\s+/g,' ').trim();
+  }
+  if(!provaTime){
+    const fullText=doc.body?doc.body.textContent:'';
+    const tm=fullText.match(/hor[aá]rio[:\s]+(\d{1,2}[h:]\d{2})/i)||fullText.match(/in[ií]cio[:\s]+(\d{1,2}[h:]\d{2})/i)||fullText.match(/\b(\d{2}:\d{2})\b/);
+    if(tm){
+      const raw=tm[1].replace('h',':');
+      const[h,m]=raw.split(':').map(Number);
+      if(h>=0&&h<=23&&m>=0&&m<=59)provaTime=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
+    }
+  }
+
+  // Parse table rows
+  const participants=[];
+  const rows=doc.querySelectorAll('table tr');
+  for(const row of rows){
+    const cells=row.querySelectorAll('td');
+    if(cells.length<3)continue;
+    const orderText=cells[0].textContent.trim();
+    if(!/^\d+$/.test(orderText))continue;
+    const compName=cells[1].textContent.replace(/\s+/g,' ').trim();
+    if(!compName)continue;
+    const horseRaw=cells[2].textContent.replace(/\s+/g,' ').trim();
+    const dateIdx=horseRaw.search(/\d{2}\/\d{2}\/\d{4}/);
+    const horseName=(dateIdx>0?horseRaw.slice(0,dateIdx):horseRaw).trim();
+    const category=cells.length>4?cells[4].textContent.replace(/\s+/g,' ').trim():'';
+    participants.push({inscriptionNumber:orderText,competitorName:compName,horseName,category});
+  }
+
+  return{url,provaName,provaTime,participants,error:null};
+}
+
+async function fphFetchAndParse(urls){
+  const PROXY='https://api.allorigins.win/raw?url=';
+  const results=[];
+  for(const raw of urls){
+    const url=raw.trim();
+    if(!url)continue;
+    try{
+      const controller=new AbortController();
+      const timer=setTimeout(()=>controller.abort(),18000);
+      const res=await fetch(PROXY+encodeURIComponent(url),{signal:controller.signal});
+      clearTimeout(timer);
+      if(!res.ok)throw new Error('HTTP '+res.status);
+      const html=await res.text();
+      results.push(parseFphHtml(html,url));
+    }catch(err){
+      results.push({url,provaName:'',provaTime:'',participants:[],error:err.message});
+    }
+  }
+  return results;
+}
+
+function fphMatchClients(results){
+  const matched=[];
+  results.forEach(r=>{
+    if(r.error||!r.participants.length)return;
+    r.participants.forEach(p=>{
+      const normComp=normFph(p.competitorName);
+      let client=null;
+      for(const c of db.clients){
+        const normC=normFph(c.name);
+        if(normC===normComp){client=c;break;}
+        const words=normC.split(' ').filter(w=>w.length>2);
+        if(words.length>=2&&words.every(w=>normComp.includes(w))){client=c;break;}
+      }
+      if(client){
+        // Check duplicate
+        const today=todayISO();
+        const dup=db.participations.some(x=>
+          x.eventId===S.eventId&&x.clientId===client.id&&x.day===today&&
+          (x.inscriptionNumber===p.inscriptionNumber||(x.proofName&&x.proofName===r.provaName))
+        );
+        matched.push({client,provaName:r.provaName,provaTime:r.provaTime,url:r.url,
+          inscriptionNumber:p.inscriptionNumber,horseName:p.horseName,category:p.category,dup});
+      }
+    });
+  });
+  return matched;
+}
+
+async function fphDoFetch(){
+  const ta=document.getElementById('fph-url-input');
+  if(!ta)return;
+  const urls=ta.value.split('\n').filter(u=>u.trim());
+  if(!urls.length){showToast('Cole pelo menos uma URL','error');return;}
+  window._fphLoading=true;window._fphResults=null;render();
+  window._fphResults=await fphFetchAndParse(urls);
+  window._fphLoading=false;render();
+}
+
+function fphDoImportSelected(){
+  const checkboxes=document.querySelectorAll('.fph-check:checked');
+  if(!checkboxes.length){showToast('Selecione ao menos uma participação','error');return;}
+  const today=todayISO();
+  let count=0;
+  checkboxes.forEach(cb=>{
+    const idx=parseInt(cb.dataset.idx);
+    const item=window._fphMatchCache[idx];
+    if(!item)return;
+    // Find or create horse
+    let horse=db.horses.find(h=>h.clientId===item.client.id&&normFph(h.name)===normFph(item.horseName));
+    if(!horse){horse={id:uid(),clientId:item.client.id,name:item.horseName,notes:''};db.horses.push(horse);}
+    // Duplicate check
+    const dup=db.participations.find(x=>
+      x.eventId===S.eventId&&x.clientId===item.client.id&&x.day===today&&x.horseId===horse.id&&x.proofName===item.provaName
+    );
+    if(dup){
+      dup.inscriptionNumber=item.inscriptionNumber;
+      dup.proofTime=item.provaTime;
+      dup.recognitionTime=calcRecog(item.provaTime);
+    }else{
+      db.participations.push({
+        id:uid(),eventId:S.eventId,clientId:item.client.id,horseId:horse.id,contractId:'',
+        day:today,proofName:item.provaName,inscriptionNumber:item.inscriptionNumber,
+        category:item.category,proofTime:item.provaTime,recognitionTime:calcRecog(item.provaTime),
+        recognitionOverride:false,filmStatus:'aguardando',
+        cameraman:'',materialLink:'',filmNotes:'',checkRecog:false,checkPaddock:false,checkProva:false,
+      });
+    }
+    count++;
+  });
+  saveDB();
+  window._fphResults=null;window._fphMatchCache=null;
+  showToast(`${count} participação(ões) importada(s)!`);
+  S.page='agenda';render();
+}
+
+window._fphMatchCache=null;
+
+function pageFphImport(){
+  // Loading
+  if(window._fphLoading){
+    return`<div class="sec-hdr"><div class="sec-title" data-action="set-page" data-page="mais" style="cursor:pointer;color:var(--muted)">← Mais</div></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:16px;padding:60px 20px;color:var(--muted);text-align:center">
+      <div style="width:40px;height:40px;border:3px solid var(--border2);border-top-color:var(--gold);border-radius:50%;animation:spin 1s linear infinite"></div>
+      <div style="font-size:14px">Buscando dados no site da FPH...</div>
+      <div style="font-size:12px;color:var(--muted)">Isso pode levar alguns segundos por URL</div>
+    </div>`;
+  }
+
+  // Results
+  if(window._fphResults){
+    const matched=fphMatchClients(window._fphResults);
+    window._fphMatchCache=matched;
+    const errors=window._fphResults.filter(r=>r.error);
+    const noMatch=window._fphResults.filter(r=>!r.error&&r.participants.length>0&&
+      !matched.some(m=>m.url===r.url));
+
+    // Group by prova
+    const byProva={};
+    matched.forEach((m,i)=>{
+      const key=m.provaName||m.url;
+      if(!byProva[key])byProva[key]={provaName:m.provaName,provaTime:m.provaTime,items:[]};
+      byProva[key].items.push({...m,_idx:i});
+    });
+
+    const provaHtml=Object.values(byProva).map(g=>`
+      <div class="card" style="margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border)">
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:700;font-size:14px">${esc(g.provaName||'Prova desconhecida')}</div>
+            ${g.provaTime?`<div style="font-size:12px;color:var(--amber);margin-top:2px">⏰ ${esc(g.provaTime)}</div>`:''}
+          </div>
+        </div>
+        ${g.items.map(item=>`
+          <label style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;${item.dup?'opacity:.6':''}">
+            <input type="checkbox" class="fph-check" data-idx="${item._idx}" ${item.dup?'':'checked'} style="width:18px;height:18px;flex-shrink:0;accent-color:var(--gold)">
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:600;font-size:14px">${esc(item.client.name)}</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:2px">🐎 ${esc(item.horseName)} · Nº${esc(item.inscriptionNumber)}</div>
+              <div style="font-size:11px;color:var(--muted)">${esc(item.category)}</div>
+              ${item.dup?'<div style="font-size:11px;color:var(--amber);margin-top:2px">⚠️ Já existe — será atualizado</div>':''}
+            </div>
+          </label>`).join('')}
+      </div>`).join('');
+
+    const errHtml=errors.length?`<div class="card" style="background:var(--red-bg);border-color:rgba(220,74,74,.3);margin-bottom:10px">
+      <div class="card-title" style="color:var(--red)">Erros de carregamento</div>
+      ${errors.map(e=>`<div style="font-size:12px;color:var(--red);margin-bottom:4px">${esc(e.url)}<br><span style="color:var(--muted)">${esc(e.error)}</span></div>`).join('')}
+    </div>`:'';
+
+    const noMatchHtml=noMatch.length?`<div style="font-size:12px;color:var(--muted);padding:8px 0">Nenhum cliente do app encontrado em: ${noMatch.map(r=>r.provaName||r.url).join(', ')}</div>`:'';
+
+    return`<div class="sec-hdr">
+      <div class="sec-title" data-action="set-page" data-page="mais" style="cursor:pointer;color:var(--muted)">← Mais</div>
+      <button class="btn btn-ghost btn-sm" onclick="window._fphResults=null;render()">Nova busca</button>
+    </div>
+    ${errHtml}
+    ${matched.length?`
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px">${matched.length} participação(ões) encontrada(s) — selecione as que deseja importar:</div>
+      ${provaHtml}
+      ${noMatchHtml}
+      <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="fphDoImportSelected()">
+        ${IC.check} Importar Selecionados
+      </button>`
+    :`<div class="empty">${IC.users}<p>Nenhum cliente do app foi encontrado nas ordens de entrada.<br><span style="font-size:12px">Verifique se os nomes dos clientes no app correspondem ao cadastro da FPH.</span></p></div>
+      ${noMatchHtml}`}
+    `;
+  }
+
+  // Input form
+  return`<div class="sec-hdr">
+    <div class="sec-title" data-action="set-page" data-page="mais" style="cursor:pointer;color:var(--muted)">← Mais</div>
+  </div>
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-title">Como usar</div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.7">
+      1. Acesse <strong style="color:var(--text)">fph.com.br → Calendário → Ordem de Entrada</strong><br>
+      2. Copie o link de cada prova (ex: <code style="font-size:11px;background:var(--surf2);padding:1px 5px;border-radius:3px">...OrdemEntrada.aspx?ID=XXXXX</code>)<br>
+      3. Cole um link por linha abaixo e toque em Buscar
+    </div>
+  </div>
+  <div class="field" style="margin-bottom:12px">
+    <label>Links das Ordens de Entrada</label>
+    <textarea id="fph-url-input" rows="6" placeholder="https://www.fph.com.br/calendario/OrdemEntrada.aspx?ID=14484&#10;https://www.fph.com.br/calendario/OrdemEntrada.aspx?ID=14488&#10;..." style="font-size:13px;line-height:1.6"></textarea>
+  </div>
+  <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="fphDoFetch()">
+    ${IC.search} Buscar Meus Clientes
+  </button>
+  <style>@keyframes spin{to{transform:rotate(360deg)}}</style>`;
 }
 
 // ═══════════════════════════════════════════════════════════════
