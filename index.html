@@ -1558,66 +1558,57 @@ window._fphResults=null;
 window._fphLoading=false;
 
 function normFph(s){
+  // Use explicit unicode range U+0300-U+036F for combining diacritics
   return String(s).toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ').trim();
 }
 
 function parseFphHtml(html,url){
   const doc=new DOMParser().parseFromString(html,'text/html');
+  const fullText=doc.body?doc.body.textContent:'';
 
-  // Prova name — scan all elements for PR.XX pattern
+  // Prova name and time — scan full text first, then elements
   let provaName='';
   let provaTime='';
-  const allEls=doc.querySelectorAll('h1,h2,h3,h4,span,label,td,th,b,strong,p,div');
-  for(const el of allEls){
-    const t=el.childNodes.length===1&&el.childNodes[0].nodeType===3
-      ?el.textContent.trim()
-      :'';
-    if(!t)continue;
-    if(/PR\.\s*\d+/.test(t)&&t.length<300&&!provaName){
-      provaName=t.replace(/\s+/g,' ').trim();
-    }
-    // Time pattern "HH:MM" or "HHhMM"
-    if(!provaTime){
-      const tm=t.match(/\b(\d{1,2})[h:](\d{2})\b/);
-      if(tm){
-        const h=parseInt(tm[1]),m=parseInt(tm[2]);
-        if(h>=0&&h<=23&&m>=0&&m<=59)
-          provaTime=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
-      }
-    }
+
+  // Search in text nodes for PR.XX pattern
+  const prMatch=fullText.match(/PR\.?\s*\d+[^\n\r]{0,120}/);
+  if(prMatch)provaName=prMatch[0].replace(/\s+/g,' ').trim().slice(0,100);
+
+  // Time: look for HH:MM pattern (common times 07:00–18:00)
+  const timeMatches=[...fullText.matchAll(/\b(\d{1,2}):(\d{2})\b/g)];
+  for(const tm of timeMatches){
+    const h=parseInt(tm[1]),m=parseInt(tm[2]);
+    if(h>=7&&h<=20&&m>=0&&m<=59){provaTime=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');break;}
   }
 
-  // Fallback: search full text
-  if(!provaName){
-    const fullText=doc.body?doc.body.textContent:'';
-    const m=fullText.match(/PR\.\s*\d+[^\n<]{0,80}/);
-    if(m)provaName=m[0].replace(/\s+/g,' ').trim();
-  }
-  if(!provaTime){
-    const fullText=doc.body?doc.body.textContent:'';
-    const tm=fullText.match(/hor[aá]rio[:\s]+(\d{1,2}[h:]\d{2})/i)||fullText.match(/in[ií]cio[:\s]+(\d{1,2}[h:]\d{2})/i)||fullText.match(/\b(\d{2}:\d{2})\b/);
-    if(tm){
-      const raw=tm[1].replace('h',':');
-      const[h,m]=raw.split(':').map(Number);
-      if(h>=0&&h<=23&&m>=0&&m<=59)provaTime=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
-    }
-  }
-
-  // Parse table rows
+  // Parse ALL table rows — try both td-only and any cell
   const participants=[];
   const rows=doc.querySelectorAll('table tr');
   for(const row of rows){
     const cells=row.querySelectorAll('td');
     if(cells.length<3)continue;
-    const orderText=cells[0].textContent.trim();
-    if(!/^\d+$/.test(orderText))continue;
+
+    // Order number: extract first run of digits from first cell
+    const orderRaw=cells[0].textContent.trim();
+    const orderMatch=orderRaw.match(/^(\d+)/);
+    if(!orderMatch)continue;
+    const orderNum=orderMatch[1];
+
+    // Competitor name: first cell content, cleaned
     const compName=cells[1].textContent.replace(/\s+/g,' ').trim();
-    if(!compName)continue;
+    if(!compName||compName.length<4)continue;
+    // Skip header-like rows
+    if(/competidor|instrutor|or\./i.test(compName))continue;
+
+    // Horse name: everything before first date DD/MM/YYYY
     const horseRaw=cells[2].textContent.replace(/\s+/g,' ').trim();
     const dateIdx=horseRaw.search(/\d{2}\/\d{2}\/\d{4}/);
-    const horseName=(dateIdx>0?horseRaw.slice(0,dateIdx):horseRaw).trim();
-    const category=cells.length>4?cells[4].textContent.replace(/\s+/g,' ').trim():'';
-    participants.push({inscriptionNumber:orderText,competitorName:compName,horseName,category});
+    const horseName=(dateIdx>0?horseRaw.slice(0,dateIdx):horseRaw.split('|')[0]).trim();
+
+    // Category: try column 4, fallback to last column
+    const category=(cells.length>4?cells[4]:cells[cells.length-1]).textContent.replace(/\s+/g,' ').trim();
+
+    participants.push({inscriptionNumber:orderNum,competitorName:compName,horseName,category});
   }
 
   return{url,provaName,provaTime,participants,error:null};
@@ -1801,8 +1792,27 @@ function pageFphImport(){
       <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="fphDoImportSelected()">
         ${IC.check} Importar Selecionados
       </button>`
-    :`<div class="empty">${IC.users}<p>Nenhum cliente do app foi encontrado nas ordens de entrada.<br><span style="font-size:12px">Verifique se os nomes dos clientes no app correspondem ao cadastro da FPH.</span></p></div>
-      ${noMatchHtml}`}
+    :(()=>{
+      // Diagnostic: show what was actually parsed
+      const allParts=window._fphResults.flatMap(r=>r.participants||[]);
+      const diagHtml=allParts.length>0
+        ?`<div class="card" style="margin-bottom:10px">
+          <div class="card-title" style="color:var(--amber)">Diagnóstico — ${allParts.length} competidor(es) encontrado(s) na tabela</div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.8">
+            <strong style="color:var(--text)">Primeiros nomes encontrados na FPH:</strong><br>
+            ${allParts.slice(0,5).map(p=>`• ${esc(p.competitorName)}`).join('<br>')}
+          </div>
+          <div style="font-size:12px;color:var(--muted);margin-top:8px">
+            <strong style="color:var(--text)">Clientes cadastrados no app:</strong><br>
+            ${db.clients.slice(0,5).map(c=>`• ${esc(c.name)}`).join('<br>')}
+          </div>
+        </div>`
+        :`<div class="card" style="border-color:rgba(220,74,74,.3);margin-bottom:10px">
+          <div class="card-title" style="color:var(--red)">Nenhum competidor encontrado na tabela</div>
+          <div style="font-size:12px;color:var(--muted)">O parser não conseguiu ler a tabela. Tente "Nova busca" com as mesmas URLs.</div>
+        </div>`;
+      return`${diagHtml}${noMatchHtml}`;
+    })()}
     `;
   }
 
