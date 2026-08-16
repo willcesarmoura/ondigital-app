@@ -587,7 +587,9 @@ function _pageAgoraInner(){
     .sort((a,b)=>{
       if(a.proofTime&&!b.proofTime)return -1;
       if(!a.proofTime&&b.proofTime)return 1;
-      return toMins(a.proofTime||'99:99')-toMins(b.proofTime||'99:99');
+      const td=toMins(a.proofTime||'99:99')-toMins(b.proofTime||'99:99');
+      if(td!==0)return td;
+      return(parseInt(a.inscriptionNumber)||99999)-(parseInt(b.inscriptionNumber)||99999);
     });
 
   // "Próximo" só conta participações COM horário definido
