@@ -263,7 +263,7 @@ function billingLabel(id){return BILLING_MODELS.find(b=>b.id===id)||BILLING_MODE
 function billingBadge(bm,small){const b=billingLabel(bm);return`<span class="badge badge-${b.id}"${small?' style="font-size:10px"':''}>${b.label}</span>`}
 function stageBtns(part){
   const s=[{key:'checkRecog',label:'Reconhecimento'},{key:'checkPaddock',label:'Paddock'},{key:'checkProva',label:'Prova'}];
-  return`<div class="stages">${s.map(x=>`<button class="stage-btn${part[x.key]?' done':''}" data-action="toggle-check" data-id="${part.id}" data-key="${x.key}" onclick="event.stopPropagation()">${x.label}${part[x.key]?' ✓':''}</button>`).join('')}</div>`;
+  return`<div class="stages">${s.map(x=>`<button class="stage-btn${part[x.key]?' done':''}" data-action="toggle-check" data-id="${part.id}" data-key="${x.key}" onclick="event.stopPropagation();handleAction('toggle-check',this)">${x.label}${part[x.key]?' ✓':''}</button>`).join('')}</div>`;
 }
 
 // ═══════════════════════════════════════════════════════════════
